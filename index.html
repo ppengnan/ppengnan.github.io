@@ -5,75 +5,93 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Nan Peng | Academic Portfolio</title>
   <style>
-    body { max-width: 880px; margin: 40px auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", sans-serif; line-height: 1.6; padding: 0 16px; }
-    header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
-    h1 { margin: 0; font-size: 28px; }
-    nav a { margin-right: 14px; text-decoration: none; }
-    section { margin-top: 28px; }
-    h2 { border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 12px; }
-    ul { margin: 0; padding-left: 18px; }
-    .meta { color: #666; font-size: 14px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", sans-serif;
+      max-width: 880px;
+      margin: 40px auto;
+      line-height: 1.6;
+      padding: 0 16px;
+      color: #222;
+    }
+    h1 { font-size: 32px; margin-bottom: 0; }
+    h2 { border-bottom: 2px solid #ddd; padding-bottom: 6px; margin-top: 40px; }
+    nav a { margin-right: 15px; text-decoration: none; color: #0077cc; }
+    nav a:hover { text-decoration: underline; }
+    ul { padding-left: 18px; }
+    .meta { color: #555; font-size: 14px; margin-top: 5px; }
+    footer { margin-top: 40px; font-size: 13px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; text-align: center; }
   </style>
 </head>
 <body>
   <header>
     <h1>Nan Peng</h1>
+    <p class="meta">
+      Graduate Student, Computational Communication, Jinan University<br />
+      Email: <a href="mailto:yourname@example.com">yourname@example.com</a> · 
+      <a href="https://github.com/ppengnan">GitHub</a> · 
+      <a href="CV.pdf">CV (PDF)</a>
+    </p>
     <nav>
+      <a href="#about">About</a>
       <a href="#papers">Papers</a>
       <a href="#projects">Projects</a>
-      <a href="#videos">Video Works</a>
+      <a href="#videos">Videos</a>
       <a href="#photos">Photography</a>
-      <a href="CV.pdf">CV</a>
     </nav>
   </header>
 
-  <p class="meta">Email: yourname@example.com · GitHub: <a href="https://github.com/ppengnan">ppengnan</a></p>
-
   <section id="about">
-    <h2>About</h2>
-    <p>I am a graduate student in Computational Communication focusing on deepfake, accessibility, and inclusive design. This site hosts selected papers, projects, and creative works.</p>
+    <h2>About Me</h2>
+    <p>
+      I am a graduate student in Computational Communication at Jinan University. 
+      My research focuses on deepfake-related misinformation, trust mechanisms, 
+      and accessible design for vulnerable populations such as older adults and individuals with intellectual disabilities. 
+      I combine qualitative coding, machine learning, and agent-based modeling to explore social risks and digital inclusion.
+    </p>
   </section>
 
   <section id="papers">
-    <h2>Papers</h2>
+    <h2>Selected Papers</h2>
     <ul>
-      <li><strong>Deepfake and Trust:</strong> Title – Journal/Conference, Year. <a href="https://doi.org/xxx">DOI</a> · <a href="paper1.pdf">PDF</a></li>
-      <li><strong>ABM for Elder Protection:</strong> Title – Venue, Year. <a href="https://arxiv.org/xxx">Link</a> · <a href="paper2.pdf">PDF</a></li>
+      <li><strong>Deepfake Fraud and the Risk Society:</strong> Understanding the manipulation of trust through AI-generated media. <em>Information, Communication & Society</em> (under review). [<a href="#">PDF</a>]</li>
+      <li><strong>Modeling Elderly Trust and Deception:</strong> An agent-based simulation integrating GPT and Bayesian game theory. <em>IEEE MiTA 2025</em>. [<a href="#">PDF</a>]</li>
+      <li><strong>Bridging Information Inequality:</strong> Designing an accessible social media platform for individuals with intellectual disabilities. [<a href="#">PDF</a>]</li>
     </ul>
   </section>
 
   <section id="projects">
-    <h2>Projects</h2>
+    <h2>Research Projects</h2>
     <ul>
-      <li><strong>Accessible Social Media Prototype</strong> – brief one-line description. <a href="https://github.com/yourrepo">Code</a> · <a href="https://demo.example.com">Demo</a></li>
-      <li><strong>Deepfake Discourse Dashboard</strong> – brief one-line description. <a href="https://github.com/yourrepo2">Code</a></li>
+      <li><strong>Deepfake Discourse Dynamics (2017–2025):</strong> Collected 88k+ Weibo posts to analyze topic evolution, sentiment, and forecasting using BERTopic and time-series models.</li>
+      <li><strong>Elder Scam Simulation System:</strong> Built an agent-based framework integrating GPT-based persona modeling and intervention evaluation for elderly protection research.</li>
+      <li><strong>Inclusive Information Platform:</strong> Designed and prototyped an accessible media system combining semantic simplification and participatory design with individuals with intellectual disabilities.</li>
     </ul>
   </section>
 
   <section id="videos">
     <h2>Video Works</h2>
     <ul>
-      <li><a href="https://www.youtube.com/xxxxxxxx">Short Documentary – Title</a></li>
-      <li><a href="https://www.bilibili.com/video/xxxxxxxx">Creative Short – Title</a></li>
+      <li><a href="https://www.youtube.com/">Short Documentary: “Seeing the Unseen”</a> – A visual storytelling project about digital inclusion.</li>
+      <li><a href="https://www.bilibili.com/">Creative Short: “Fake or Faith”</a> – Exploring deepfake deception and human trust.</li>
     </ul>
   </section>
 
   <section id="photos">
     <h2>Photography</h2>
     <ul>
-      <li><a href="gallery/index.html">Gallery</a></li>
-      <li><a href="https://photos.app.goo.gl/xxxxxxxx">Google Photos Album</a></li>
+      <li><a href="https://photos.app.goo.gl/">Street Life in Guangzhou</a></li>
+      <li><a href="https://photos.app.goo.gl/">Moments from Inclusion Factory</a></li>
     </ul>
   </section>
 
-  <footer class="meta" style="margin-top:28px;">
-    © <span id="y"></span> Nan Peng · Last updated: <span id="d"></span>
+  <footer>
+    © <span id="year"></span> Nan Peng · All Rights Reserved · Last updated: <span id="date"></span>
   </footer>
 
   <script>
-    const t = new Date();
-    document.getElementById('y').textContent = t.getFullYear();
-    document.getElementById('d').textContent = t.toISOString().slice(0,10);
+    const now = new Date();
+    document.getElementById('year').textContent = now.getFullYear();
+    document.getElementById('date').textContent = now.toISOString().slice(0,10);
   </script>
 </body>
 </html>
