@@ -34,6 +34,28 @@
       object-fit: cover;      /* 保持比例 */
       border: 2px solid #ddd; /* 可选边框 */
     }
+    .cat-gallery {
+      display: flex;
+      flex-wrap: wrap;       /* 自动换行 */
+      gap: 10px;             /* 图片间距 */
+      justify-content: center;
+      margin-top: 15px;
+    }
+    
+    .cat-gallery img {
+      width: 120px;          /* 每张图片宽度 */
+      height: 120px;         /* 保证方形 */
+      object-fit: cover;     /* 居中裁剪，不变形 */
+      border-radius: 10px;   /* 可改成50%做成圆形 */
+      border: 2px solid #ddd;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .cat-gallery img:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
   </style>
 </head>
 <body>
