@@ -20,11 +20,27 @@
     ul { padding-left: 18px; }
     .meta { color: #555; font-size: 14px; margin-top: 5px; }
     footer { margin-top: 40px; font-size: 13px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; text-align: center; }
+     /* 新增样式，让头像和姓名同一行 */
+    .header-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .profile-pic {
+      width: 60px;            /* 头像大小，可调整 */
+      height: 60px;
+      border-radius: 50%;     /* 圆形头像 */
+      object-fit: cover;      /* 保持比例 */
+      border: 2px solid #ddd; /* 可选边框 */
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>Nan Peng</h1>
+    <img src="profile.png" alt="Nan Peng profile photo" class="profile-pic" />
+    </div>
     <p class="meta">
       Weclocme!<br />
       Email: <a href="mailto:pengnan@stu.jnu.edu.cn">pengnan@stu.jnu.edu.cn</a> · 
