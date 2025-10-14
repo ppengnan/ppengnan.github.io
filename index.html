@@ -157,7 +157,22 @@
     .font-btn:focus { outline: 3px solid #477dfc; outline-offset: 2px; }
     /* --- 修正导航栏的链接样式（去掉超链接颜色和下划线） --- */
     /* 只影响导航，正文链接不变 */
+    /* 更明显的选中态（同时覆盖 hover） */
+    .font-btn[aria-pressed="true"],
+    .font-btn[aria-pressed="true"]:hover {
+      background: #333 !important;   /* 深色底 */
+      color: #fff !important;         /* 白字 */
+      border-color: #333 !important;  /* 边框同色 */
+      box-shadow: none !important;    /* 去内阴影，干净利落 */
+      font-weight: 600;               /* 稍微加粗 */
+    }
     
+    /* 仍保留键盘可见的焦点高亮（可选） */
+    .font-btn:focus {
+      outline: 3px solid #477dfc;
+      outline-offset: 2px;
+    }
+
 
     
     /* 小屏时让链接换行 */
