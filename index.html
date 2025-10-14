@@ -33,7 +33,7 @@
     footer { margin-top: 40px; font-size: 0.8125rem; color: #777; border-top: 1px solid #ddd; padding-top: 10px; text-align: center; }
   
     
-    nav a:hover { text-decoration: underline; }
+    nav a:hover { text-decoration: none; }
 
     
      /* 新增样式，让头像和姓名同一行 */
@@ -131,7 +131,7 @@
       align-items: center;
       /* overflow-x: auto;                          /* 宽度不够时允许左右滑动 */
       /* scrollbar-width: none;                     /* Firefox 隐藏滚动条 */
-      /* padding-right: var(--nav-pad); 
+      /* padding-right: var(--nav-pad); */ 
     }
     .nav-top::-webkit-scrollbar { display: none; } /* WebKit 隐藏滚动条 */
     .nav-top a {
@@ -246,14 +246,17 @@
       font-weight: 600;   /* 与标题一致 */
       color: #333;        /* 字体颜色统一 */
     }
+    /* 导航链接统一为深灰、无下划线 */
     nav .nav-top a:link,
-    nav .nav-top a:visited,
-    nav .nav-top a:hover,
-    nav .nav-top a:active {
+    nav .nav-top a:visited {
       color: #444 !important;
       text-decoration: none !important;
     }
-    nav .nav-top a:hover { color: #333 !important; }
+    nav .nav-top a:hover,
+    nav .nav-top a:active {
+      color: #333 !important;
+      text-decoration: none !important;
+    }
 
     
   </style>
