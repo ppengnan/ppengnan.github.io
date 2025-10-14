@@ -124,13 +124,14 @@
     /* 第一行：导航标题一行排列，必要时整项换到下一行 */
     .nav-top {
       display: flex;
-      flex-wrap: nowrap;          /* 屏幕窄时整块换行 */
+      flex-wrap: wrap;          /* 屏幕窄时整块换行 */
       gap: clamp(12px, 2vw, 24px);               /* 自适应间距：宽屏更松、窄屏更紧 */
+      row-gap: 8px; 
       justify-content: flex-start;  /* 居中，可改 flex-start 靠左 */
       align-items: center;
-      overflow-x: auto;                          /* 宽度不够时允许左右滑动 */
-      scrollbar-width: none;                     /* Firefox 隐藏滚动条 */
-      padding-right: var(--nav-pad); 
+      /* overflow-x: auto;                          /* 宽度不够时允许左右滑动 */
+      /* scrollbar-width: none;                     /* Firefox 隐藏滚动条 */
+      /* padding-right: var(--nav-pad); 
     }
     .nav-top::-webkit-scrollbar { display: none; } /* WebKit 隐藏滚动条 */
     .nav-top a {
