@@ -101,7 +101,7 @@
       background: #fff;
       z-index: 1000;
       /* 用 em/clamp，字号变大时高度一起变，避免挤压 */
-      padding-block: clamp(8px, 0.7em, 16px);
+      padding-block: clamp(6px, 0.55em, 12px);
       padding-inline: 0;     
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       border-bottom: 1px solid #f0f0f0;
@@ -634,7 +634,7 @@
         const nav = document.querySelector('nav');
         if (!nav) return;
         // 导航真实高度 + 一点呼吸空间
-        const h = nav.offsetHeight + 7; // 给点呼吸空间
+        const h = nav.offsetHeight + 3; // 给点呼吸空间
         document.body.style.marginTop = h + 'px';
         
         document.documentElement.style.setProperty('--nav-offset', h + 'px');
