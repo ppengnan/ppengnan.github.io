@@ -112,17 +112,30 @@
       margin: 0 auto;
       padding: 0;                /* 去掉这层内边距，避免重复堆高 */
       display: flex;
+      flex-direction: column;   /* ← 关键：垂直布局 */
       gap: 16px;
-      align-items: center;
+      align-items: stretch;
       justify-content: flex-start;
-      flex-wrap: wrap;           /* 宽度不够时整项换行 */
+
     }
-    
-    nav .nav-inner a {
-      white-space: nowrap;       /* 词组内部不换行 */
+    /* 第一行：导航标题一行排列，必要时整项换到下一行 */
+    .nav-top {
+      display: flex;
+      flex-wrap: wrap;          /* 屏幕窄时整块换行 */
+      gap: 20px;                /* 标题之间的间距 */
+      justify-content: center;  /* 居中，可改 flex-start 靠左 */
+    }
+    .nav-top a {
+      white-space: nowrap;  /* 词组不拆行 */
       flex: 0 0 auto;
     }
-    .a11y-tools { margin-left: auto; display: inline-flex; gap: 6px; flex: 0 0 auto;}
+    .a11y-tools {
+      display: flex;
+      justify-content: flex-end;  /* 让按钮在第二行右对齐 */
+      gap: 6px;
+      flex: 0 0 auto;
+    }
+
     .font-btn {
       font: inherit; line-height: 1; padding: 0.35em 0.65em; border-radius: 6px;
       border: 1px solid #ccc; background: #fff; cursor: pointer;
@@ -228,21 +241,24 @@
       <a href="https://github.com/ppengnan">GitHub</a> · 
       <a href="CV.pdf">CV (PDF)</a>
     </p>
-    <nav>
+    <nav aria-label="Primary">
       <div class="nav-inner">
-        <a href="#about">About</a>
-        <a href="#publications">Publications</a>
-        <a href="#projects">Projects</a>
-        <a href="#work">Work Experience</a>
-        <a href="#videos">Videos</a>
-        <a href="#awards-honors">Awards & Honors</a>
-        <a href="#beyond-academics">Beyond Academics</a>
-        <a href="#with-cats">With Cats</a>
-        <div class="a11y-tools" role="group" aria-label="Font size controls">
-            <button class="font-btn" data-scale="0.9" aria-label="Decrease font size (A-)" title="A-">A-</button>
-            <button class="font-btn" data-scale="1" aria-label="Default font size (A)" title="A" aria-pressed="true">A</button>
-            <button class="font-btn" data-scale="1.15" aria-label="Increase font size (A+)" title="A+">A+</button>
+        <div class="nav-top">
+          <a href="#about">About</a>
+          <a href="#publications">Publications</a>
+          <a href="#projects">Projects</a>
+          <a href="#work">Work Experience</a>
+          <a href="#videos">Videos</a>
+          <a href="#awards-honors">Awards & Honors</a>
+          <a href="#beyond-academics">Beyond Academics</a>
+          <a href="#with-cats">With Cats</a>
         </div>
+        <div class="a11y-tools" role="group" aria-label="Font size controls">
+          <button class="font-btn" data-scale="0.9" aria-label="Decrease font size (A-)" title="A-">A-</button>
+          <button class="font-btn" data-scale="1" aria-label="Default font size (A)" title="A" aria-pressed="true">A</button>
+          <button class="font-btn" data-scale="1.15" aria-label="Increase font size (A+)" title="A+">A+</button>
+        </div>
+    
       </div>
     </nav>
   </header>
