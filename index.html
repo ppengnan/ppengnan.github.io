@@ -121,19 +121,24 @@
     /* 第一行：导航标题一行排列，必要时整项换到下一行 */
     .nav-top {
       display: flex;
-      flex-wrap: wrap;          /* 屏幕窄时整块换行 */
+      flex-wrap: nowrap;          /* 屏幕窄时整块换行 */
       gap: 20px;                /* 标题之间的间距 */
-      justify-content: center;  /* 居中，可改 flex-start 靠左 */
+      justify-content: flex-start;  /* 居中，可改 flex-start 靠左 */
+      overflow-x: auto;                          /* ← 出现横向滚动条/触控滑动 */
+      scrollbar-width: none;                     /* Firefox 隐藏滚动条 */
     }
+    .nav-top::-webkit-scrollbar { display: none; } /* WebKit 隐藏滚动条 */
     .nav-top a {
       white-space: nowrap;  /* 词组不拆行 */
       flex: 0 0 auto;
+      text-decoration: none;
+      color: #444444;
     }
     .a11y-tools {
       display: flex;
       justify-content: flex-end;  /* 让按钮在第二行右对齐 */
       gap: 6px;
-      flex: 0 0 auto;
+      margin-top: 2px;
     }
 
     .font-btn {
