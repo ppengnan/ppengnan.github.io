@@ -266,6 +266,15 @@
       color: #444444 !important;
       text-decoration: none !important;
     }
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: var(--nav-offset, 88px); /* 用变量做顶端留白 */
+    }
+    
+    /* 双保险：直接给每个锚点区块也留出滚动外边距 */
+    section[id] { 
+      scroll-margin-top: var(--nav-offset, 88px);
+    }
 
     
   </style>
@@ -625,7 +634,10 @@
         const nav = document.querySelector('nav');
         if (!nav) return;
         // 导航真实高度 + 一点呼吸空间
-        document.body.style.marginTop = (nav.offsetHeight + 12) + 'px';
+        const h = nav.offsetHeight + 12; // 给点呼吸空间
+        document.body.style.marginTop = h + 'px';
+        
+        document.documentElement.style.setProperty('--nav-offset', h + 'px');
       }
       function applyScale(scale) {
         root.style.setProperty('--font-scale', scale);
