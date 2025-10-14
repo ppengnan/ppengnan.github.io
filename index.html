@@ -636,7 +636,7 @@
         // 导航真实高度 + 一点呼吸空间
         const navH = nav.offsetHeight;
         document.body.style.marginTop = (navH + 1) + 'px'; // 页面整体往下留点呼吸空间
-        document.documentElement.style.setProperty('--nav-offset', (navH - 2) + 'px'); // 锚点跳转更贴近标题
+        document.documentElement.style.setProperty('--nav-offset', (navH - 10) + 'px'); // 锚点跳转更贴近标题
       }
       function applyScale(scale) {
         root.style.setProperty('--font-scale', scale);
