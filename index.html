@@ -125,6 +125,33 @@
     body a:visited {
       color: #6e4b9c;           /* 已访问链接颜色 */
     }
+    .about-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 40px;
+      flex-wrap: nowrap;     /* ❗不换行，强制两栏并排 */
+      margin-top: 20px;
+    }
+    
+    .about-column {
+      flex: 1;
+      min-width: 0;          /* 防止超出容器 */
+    }
+    
+    .about-column h3 {
+      font-size: 16px;
+      font-weight: 600; 
+      margin-bottom: 8px;
+      color: #333;
+    }
+    
+    .about-column ul {
+      padding-left: 20px;
+      line-height: 1.7;
+      color: #444;
+    }
+
+    
   </style>
 </head>
 <body>
