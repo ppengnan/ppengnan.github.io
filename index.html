@@ -5,21 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Nan Peng</title>
   <style>
+    :root {
+      --font-scale: 1;     /* 0.9 | 1 | 1.15 */
+      --line-height: 1.7;  /* JS 会联动调整 */
+      --para-space: 0.8em; /* 段落间距 */
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", sans-serif;
       max-width: 880px;
       margin: 40px auto;
-      line-height: 1.6;
+      line-height: var(--line-height);                  /* ← 用变量 */
       padding: 0 16px;
       color: #444444;
+      font-size: calc(16px * var(--font-scale));        /* ← 用变量 */
     }
-    h1 { font-size: 32px; margin-bottom: 0; }
-    h2 { border-bottom: 2px solid #ddd; padding-bottom: 6px; margin-top: 40px; }
+        /* 标题改 rem，随 body 缩放 */
+    h1 { font-size: 2rem; margin-bottom: 0; }
+    h2 { font-size: 1.375rem; border-bottom: 2px solid #ddd; padding-bottom: 6px; margin-top: 2.5rem; }
+    h3 { font-size: 1rem; }
+        /* 段落节律：相邻段落增加可读间距 */
+    p + p { margin-top: var(--para-space); }
+    ul { padding-left: 1.25rem; }
+
+    /* 小字用相对单位，随档位缩放 */
+    .meta { color: #444444; font-size: 0.875rem; margin-top: 5px; }
+    footer { margin-top: 40px; font-size: 0.8125rem; color: #777; border-top: 1px solid #ddd; padding-top: 10px; text-align: center; }
+  
     nav a { margin-right: 15px; text-decoration: none; color: #444444; }
     nav a:hover { text-decoration: underline; }
-    ul { padding-left: 18px; }
-    .meta { color: #444444; font-size: 14px; margin-top: 5px; }
-    footer { margin-top: 40px; font-size: 13px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; text-align: center; }
+
+    
      /* 新增样式，让头像和姓名同一行 */
     .header-line {
       display: flex;
@@ -99,6 +114,19 @@
       align-items: center;
       justify-content: flex-start;
     }
+    .a11y-tools { margin-left: auto; display: inline-flex; gap: 6px; }
+    .font-btn {
+      font: inherit; line-height: 1; padding: 6px 10px; border-radius: 8px;
+      border: 1px solid #ccc; background: #fff; cursor: pointer;
+    }
+    .font-btn:hover { background: #f5f5f5; }
+    .font-btn[aria-pressed="true"] { border-color: #333; box-shadow: 0 0 0 2px rgba(0,0,0,0.08) inset; }
+    .font-btn:focus { outline: 3px solid #477dfc; outline-offset: 2px; }
+
+
+
+
+
     
     /* 小屏时让链接换行 */
     @media (max-width: 700px) {
@@ -139,7 +167,7 @@
     }
     
     .about-column h3 {
-      font-size: 16px;
+      font-size: 1rem;
       font-weight: 600;
       margin-top: 0; 
       margin-bottom: 8px;
@@ -152,7 +180,7 @@
       color: #444;
     }
     .about-skills h3 {
-      font-size: 16px;
+      font-size: 1rem;
       font-weight: 600;
       margin-top: 0;
       margin-bottom: 8px;
@@ -193,14 +221,21 @@
       <a href="CV.pdf">CV (PDF)</a>
     </p>
     <nav>
-      <a href="#about">About</a>
-      <a href="#publications">Publications</a>
-      <a href="#projects">Projects</a>
-      <a href="#work">Work Experience</a>
-      <a href="#videos">Videos</a>
-      <a href="#awards-honors">Awards & Honors</a>
-      <a href="#beyond-academics">Beyond Academics</a>
-      <a href="#with-cats">With Cats</a>
+      <div class="nav-inner">
+        <a href="#about">About</a>
+        <a href="#publications">Publications</a>
+        <a href="#projects">Projects</a>
+        <a href="#work">Work Experience</a>
+        <a href="#videos">Videos</a>
+        <a href="#awards-honors">Awards & Honors</a>
+        <a href="#beyond-academics">Beyond Academics</a>
+        <a href="#with-cats">With Cats</a>
+        <div class="a11y-tools" role="group" aria-label="Font size controls">
+            <button class="font-btn" data-scale="0.9" aria-label="Decrease font size (A-)" title="A-">A-</button>
+            <button class="font-btn" data-scale="1" aria-label="Default font size (A)" title="A" aria-pressed="true">A</button>
+            <button class="font-btn" data-scale="1.15" aria-label="Increase font size (A+)" title="A+">A+</button>
+        </div>
+      </div>
     </nav>
   </header>
 
@@ -514,11 +549,52 @@
   <footer>
     © <span id="year"></span> Nan Peng · All Rights Reserved · Last updated: <span id="date"></span>
   </footer>
-
   <script>
+    (function() {
+      const root = document.documentElement;
+      const KEY = 'np_fontScale';
+
+      function applyScale(scale) {
+        root.style.setProperty('--font-scale', scale);
+
+        // 联动行高与段距
+        if (scale <= 0.9) {
+          root.style.setProperty('--line-height', '1.6');
+          root.style.setProperty('--para-space', '0.6em');
+        } else if (scale >= 1.15) {
+          root.style.setProperty('--line-height', '1.85');
+          root.style.setProperty('--para-space', '1em');
+        } else {
+          root.style.setProperty('--line-height', '1.7');
+          root.style.setProperty('--para-space', '0.8em');
+        }
+
+        // 记忆选择
+        try { localStorage.setItem(KEY, String(scale)); } catch (e) {}
+
+        // 同步按钮状态
+        document.querySelectorAll('.font-btn').forEach(btn => {
+          const active = Number(btn.getAttribute('data-scale')) === Number(scale);
+          btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+      }
+
+      // 初始化（localStorage → 默认 1）
+      const saved = Number(localStorage.getItem(KEY));
+      applyScale(saved && saved > 0 ? saved : 1);
+
+      // 事件绑定（委托）
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.font-btn');
+        if (!btn) return;
+        const scale = Number(btn.getAttribute('data-scale')) || 1;
+        applyScale(scale);
+      });  
+
     const now = new Date();
     document.getElementById('year').textContent = now.getFullYear();
     document.getElementById('date').textContent = now.toISOString().slice(0,10);
+  })();
   </script>
 </body>
 </html>
