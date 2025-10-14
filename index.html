@@ -156,16 +156,15 @@
     .font-btn[aria-pressed="true"] { border-color: #333; box-shadow: 0 0 0 2px rgba(0,0,0,0.08) inset; }
     .font-btn:focus { outline: 3px solid #477dfc; outline-offset: 2px; }
     /* --- 修正导航栏的链接样式（去掉超链接颜色和下划线） --- */
-    nav .nav-top a,
+    /* 只影响导航，正文链接不变 */
+    nav .nav-top a:link,
     nav .nav-top a:visited,
     nav .nav-top a:hover,
     nav .nav-top a:active {
-      color: #444;           /* 深灰色 */
-      text-decoration: none; /* 去掉下划线 */
+      color: #444 !important;
+      text-decoration: none !important;
     }
-    nav .nav-top a:hover {
-      color: #333;           /* 悬停时略微变深 */
-    }
+    nav .nav-top a:hover { color: #333 !important; }
 
 
 
