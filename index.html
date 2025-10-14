@@ -634,10 +634,9 @@
         const nav = document.querySelector('nav');
         if (!nav) return;
         // 导航真实高度 + 一点呼吸空间
-        const h = nav.offsetHeight + 3; // 给点呼吸空间
-        document.body.style.marginTop = h + 'px';
-        
-        document.documentElement.style.setProperty('--nav-offset', h + 'px');
+        const navH = nav.offsetHeight;
+        document.body.style.marginTop = (navH + 6) + 'px'; // 页面整体往下留点呼吸空间
+        document.documentElement.style.setProperty('--nav-offset', (navH - 2) + 'px'); // 锚点跳转更贴近标题
       }
       function applyScale(scale) {
         root.style.setProperty('--font-scale', scale);
