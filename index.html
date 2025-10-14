@@ -141,11 +141,10 @@
     }
     .a11y-tools {
       display: flex;
-      justify-content: flex-end;  /* 让按钮在第二行右对齐 */
+      justify-content: flex-start;   /* 让按钮在第二行右对齐 */
       gap: 6px;
       margin-top: 2px;
-      padding-right: var(--nav-pad); 
-      align-self: stretch;   /* 占满行宽，方便右对齐到最右边 */
+      align-self: flex-start;   /* 占满行宽，方便右对齐到最右边 */
     }
 
     .font-btn {
