@@ -9,6 +9,7 @@
       --font-scale: 1;     /* 0.9 | 1 | 1.15 */
       --line-height: 1.7;  /* JS 会联动调整 */
       --para-space: 0.8em; /* 段落间距 */
+      --nav-pad: 16px; 
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", sans-serif;
@@ -31,7 +32,7 @@
     .meta { color: #444444; font-size: 0.875rem; margin-top: 5px; }
     footer { margin-top: 40px; font-size: 0.8125rem; color: #777; border-top: 1px solid #ddd; padding-top: 10px; text-align: center; }
   
-    nav a { margin-right: 15px; text-decoration: none; color: #444444; }
+    
     nav a:hover { text-decoration: underline; }
 
     
@@ -101,31 +102,35 @@
       z-index: 1000;
       /* 用 em/clamp，字号变大时高度一起变，避免挤压 */
       padding-block: clamp(8px, 0.7em, 16px);
-      padding-inline: 12px;
+      padding-inline: 0;     
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       border-bottom: 1px solid #f0f0f0;
       overflow: visible; /* 确保焦点外框不被裁剪 */
     }
     
     nav .nav-inner {
-      max-width: 880px;
-      margin: 0 auto;
-      padding: 0;                /* 去掉这层内边距，避免重复堆高 */
+      /* 让导航横向铺满，而不是跟正文一样 880px */
+      max-width: none;
+      width: 100%;
+      margin: 0;
+      padding: 0 var(--nav-pad);           /* 两侧留一点安全边距 */
       display: flex;
-      flex-direction: column;   /* ← 关键：垂直布局 */
-      gap: 16px;
+      flex-direction: column;    /* 上下两行：标题行 + 按钮行 */
+      gap: 6px;                  /* 两行之间的距离 */
       align-items: stretch;
       justify-content: flex-start;
-
     }
+
     /* 第一行：导航标题一行排列，必要时整项换到下一行 */
     .nav-top {
       display: flex;
       flex-wrap: nowrap;          /* 屏幕窄时整块换行 */
-      gap: 20px;                /* 标题之间的间距 */
+      gap: clamp(12px, 2vw, 24px);               /* 自适应间距：宽屏更松、窄屏更紧 */
       justify-content: flex-start;  /* 居中，可改 flex-start 靠左 */
-      overflow-x: auto;                          /* ← 出现横向滚动条/触控滑动 */
+      align-items: center;
+      overflow-x: auto;                          /* 宽度不够时允许左右滑动 */
       scrollbar-width: none;                     /* Firefox 隐藏滚动条 */
+      padding-right: var(--nav-pad); 
     }
     .nav-top::-webkit-scrollbar { display: none; } /* WebKit 隐藏滚动条 */
     .nav-top a {
@@ -139,6 +144,8 @@
       justify-content: flex-end;  /* 让按钮在第二行右对齐 */
       gap: 6px;
       margin-top: 2px;
+      padding-right: var(--nav-pad); 
+      align-self: stretch;   /* 占满行宽，方便右对齐到最右边 */
     }
 
     .font-btn {
@@ -156,12 +163,9 @@
     
     /* 小屏时让链接换行 */
     @media (max-width: 700px) {
-      nav .nav-inner { flex-wrap: wrap; gap: 10px; }
       .header-line { flex-direction: column; align-items: flex-start; gap: 12px; }
     }
-    body {
-      margin-top: 80px;
-    }
+    /* body {margin-top: 80px;}
         /* 正文中所有超链接颜色 */
     body a {
       color: #2b4fa6;           /* 链接文字颜色 */
