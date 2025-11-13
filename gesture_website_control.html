@@ -158,7 +158,10 @@
     let lastGesture = null;
     let lastScrollY = 0;
     let clickCooldown = false;
-    
+    // 捏合稳定性控制（新增）
+    let pinchFrameCount = 0;                  // 连续满足捏合条件的帧数
+    const PINCH_FRAMES_REQUIRED = 3;          // 至少连续 3 帧才算捏合
+    const PINCH_DISTANCE_THRESHOLD = 0.035; 
     // 计算两点距离
     function getDistance(point1, point2) {
       return Math.sqrt(
@@ -199,7 +202,7 @@
       // ① 捏合 = 点击
       // ① 捏合 = 点击（加阈值 + 连续帧判断）
       // 先用更严格的距离阈值，避免“半捏合”就触发
-      const PINCH_DISTANCE_THRESHOLD = 0.035;   // 原来是 0.06，现在更严格，你可以自己微调
+      
       
       if (pinchDistance < PINCH_DISTANCE_THRESHOLD) {
         // 满足距离条件，开始累计帧数
