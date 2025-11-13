@@ -261,14 +261,19 @@
         case 'scroll': {
           statusElement.textContent = 'Status: Scroll the page';
         
-          // 计算本次手指移动量（屏幕坐标：向下 = y 变大）
+          // ❗ 禁止处于捏合状态的滚动（解决误触）
+          if (gesture.pinchDistance < PINCH_DISTANCE_THRESHOLD + 0.015) {
+            // 拇指靠近 → 禁止 scrolling
+            break;
+          }
+        
           const rawDelta = y - lastScrollY;
         
-          // 抗抖动：位移太小就不滚动，但要更新基准，否则会积累
           if (Math.abs(rawDelta) < 3) {
             lastScrollY = y;
             break;
           }
+
         
           const SCROLL_SPEED = 20; // 滚动速度
           const frame = document.getElementById('website-frame');
