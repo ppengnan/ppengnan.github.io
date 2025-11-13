@@ -160,7 +160,7 @@
     let clickCooldown = false;
     // 捏合稳定性控制（新增）
     let pinchFrameCount = 0;                  // 连续满足捏合条件的帧数
-    const PINCH_FRAMES_REQUIRED = 3;          // 至少连续 3 帧才算捏合
+    const PINCH_FRAMES_REQUIRED = 10;          // 至少连续 3 帧才算捏合
     const PINCH_DISTANCE_THRESHOLD = 0.035; 
     // 计算两点距离
     function getDistance(point1, point2) {
