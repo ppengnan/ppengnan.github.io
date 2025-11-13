@@ -153,47 +153,54 @@
       );
     }
     
-    // 识别手势类型
+    // 识别手势类型（更稳定版）
     function recognizeGesture(landmarks) {
-      const thumbTip = landmarks[4];
-      const indexTip = landmarks[8];
+      const thumbTip  = landmarks[4];
+      const indexTip  = landmarks[8];
       const middleTip = landmarks[12];
-      const ringTip = landmarks[16];
-      const pinkyTip = landmarks[20];
-      const indexBase = landmarks[5];
-      const wrist = landmarks[0];
-      
-      // 计算食指是否伸直
-      const indexStraight = indexTip.y < indexBase.y;
-      const middleFolded = middleTip.y > landmarks[10].y;
-      const ringFolded = ringTip.y > landmarks[14].y;
-      const pinkyFolded = pinkyTip.y > landmarks[18].y;
-      
-      // 捏合手势 (拇指和食指距离很近)
+      const ringTip   = landmarks[16];
+      const pinkyTip  = landmarks[20];
+
+      const indexBase  = landmarks[5];
+      const middleBase = landmarks[9];
+      const ringBase   = landmarks[13];
+      const pinkyBase  = landmarks[17];
+
+      // 1) 先算拇指-食指距离（捏合）
       const pinchDistance = getDistance(thumbTip, indexTip);
-      if (pinchDistance < 0.05) {
+
+      // 2) 判断每根手指是不是“伸直”
+      // y 越小 = 越靠上，所以 tip.y < base.y 代表伸直
+      const indexStraight  = indexTip.y  < indexBase.y;
+      const middleStraight = middleTip.y < middleBase.y;
+      const ringStraight   = ringTip.y   < ringBase.y;
+      const pinkyStraight  = pinkyTip.y  < pinkyBase.y;
+
+      const allExtended =
+        indexStraight && middleStraight && ringStraight && pinkyStraight;
+
+      // 3) 手势优先级：
+      //    捏合 > 张开手掌 > 食指竖起滚动
+
+      // ① 捏合 = 点击
+      if (pinchDistance < 0.06) {   // 稍微放宽一点阈值
         return { type: 'pinch', position: indexTip };
       }
-      
-      // 食指竖起 (滚动)
-      if (indexStraight && middleFolded && ringFolded && pinkyFolded) {
-        return { type: 'scroll', position: indexTip };
-      }
-      
-      // 张开手掌 (移动光标)
-      const allExtended = 
-        indexTip.y < indexBase.y &&
-        middleTip.y < landmarks[10].y &&
-        ringTip.y < landmarks[14].y &&
-        pinkyTip.y < landmarks[18].y;
-      
+
+      // ② 四指都伸直 = 移动光标（张开手掌）
       if (allExtended) {
         return { type: 'move', position: indexTip };
       }
-      
+
+      // ③ 只有食指明显伸直 = 滚动
+      if (indexStraight) {
+        return { type: 'scroll', position: indexTip };
+      }
+
+      // ④ 其他情况 = 无手势
       return { type: 'none', position: indexTip };
     }
-    
+
     // 执行手势动作
     function performGesture(gesture) {
       const x = gesture.position.x * window.innerWidth;
