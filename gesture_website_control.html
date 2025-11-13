@@ -55,19 +55,22 @@
     
     #cursor {
       position: fixed;
-      width: 30px;
-      height: 30px;
-      border: 3px solid #ff0000;
-      border-radius: 50%;
-      pointer-events: none;
+      width: 40px;              /* 可以根据图片大小调整 */
+      height: 40px;
+      background-image: url('./arrow.png');  /* ✅ 这里写你的图片文件名 */
+      background-size: contain;  /* 等比缩放，完整显示箭头 */
+      background-repeat: no-repeat;
+      background-position: center;
+      pointer-events: none;      /* 不挡住点击事件 */
       z-index: 999;
       display: none;
       transition: transform 0.1s;
+      transform-origin: top left;  /* 让缩放以箭头左上角为基准，比较像系统鼠标 */
     }
-    
+
+    /* 点击时让箭头稍微变大一点 */
     #cursor.clicking {
-      background: rgba(255, 0, 0, 0.3);
-      transform: scale(1.5);
+      transform: scale(1.3);
     }
     
     #info-panel {
