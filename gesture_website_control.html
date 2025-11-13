@@ -197,8 +197,21 @@
       //    捏合 > 张开手掌 > 食指竖起滚动
 
       // ① 捏合 = 点击
-      if (pinchDistance < 0.06) {   // 稍微放宽一点阈值
-        return { type: 'pinch', position: indexTip };
+      // ① 捏合 = 点击（加阈值 + 连续帧判断）
+      // 先用更严格的距离阈值，避免“半捏合”就触发
+      const PINCH_DISTANCE_THRESHOLD = 0.035;   // 原来是 0.06，现在更严格，你可以自己微调
+      
+      if (pinchDistance < PINCH_DISTANCE_THRESHOLD) {
+        // 满足距离条件，开始累计帧数
+        pinchFrameCount++;
+      
+        // 必须连续多帧都满足，才真正认为是“捏合”
+        if (pinchFrameCount >= PINCH_FRAMES_REQUIRED) {
+          return { type: 'pinch', position: indexTip };
+        }
+      } else {
+        // 一旦距离拉开，立刻重置计数
+        pinchFrameCount = 0;
       }
 
       // ② 四指都伸直 = 移动光标（张开手掌）
