@@ -130,8 +130,8 @@
   <div id="info-panel">
     <div class="gesture-info"><strong>Gesture Control:</strong></div>
     <div class="gesture-info">✋ Spread your palm - Move the cursor</div>
-    <div class="gesture-info">👆 Index finger raised – scroll the page</div>
-    <div class="gesture-info">👌 Pinch gesture – click</div>
+    <div class="gesture-info">👆 Index finger raised – Scroll the page</div>
+    <div class="gesture-info">👌 Pinch gesture – Click</div>
     <div class="gesture-info" id="status">Status: Waiting for detection…</div>
   </div>
 
@@ -235,12 +235,12 @@
 
       switch (gesture.type) {
         case 'move':
-          statusElement.textContent = '状态: 移动光标';
+          statusElement.textContent = 'Status: Move the cursor';
           cursor.className = '';
           break;
 
         case 'scroll': {
-          statusElement.textContent = '状态: 滚动页面';
+          statusElement.textContent = 'Status: Scroll the page';
 
           // 计算本次手指移动量
           const rawDelta = y - lastScrollY;
@@ -270,7 +270,7 @@
         }
 
         case 'pinch':
-          statusElement.textContent = '状态: 点击';
+          statusElement.textContent = 'Status: Click';
           cursor.className = 'clicking';
           if (!clickCooldown) {
             // ✅ 获取 iframe 和其边界
@@ -298,7 +298,7 @@
                   targetElement.dispatchEvent(clickEvent);
                 }
               } catch (e) {
-                console.warn('跨域限制,无法访问 iframe 内容:', e);
+                console.warn('Cross-origin restrictions prevent access to iframe content:', e);
               }
             }
         
@@ -308,7 +308,7 @@
           break;
 
         default:
-          statusElement.textContent = '状态: 等待手势';
+          statusElement.textContent = 'Status: Waiting for gesture';
           cursor.style.display = 'none';
       }
     }
