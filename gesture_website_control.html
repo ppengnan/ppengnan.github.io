@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>手势控制网站</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      font-family: Arial, sans-serif;
+    }
+    
+    #video-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 320px;
+      height: 240px;
+      border: 3px solid #00ff00;
+      border-radius: 10px;
+      overflow: hidden;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    
+    #input_video, #output_canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    #website-frame {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    #cursor {
+      position: fixed;
+      width: 30px;
+      height: 30px;
+      border: 3px solid #ff0000;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 999;
+      display: none;
+      transition: transform 0.1s;
+    }
+    
+    #cursor.clicking {
+      background: rgba(255, 0, 0, 0.3);
+      transform: scale(1.5);
+    }
+    
+    #info-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      z-index: 1000;
+      font-size: 14px;
+      max-width: 300px;
+    }
+    
+    .gesture-info {
+      margin: 5px 0;
+    }
+    
+    .gesture-info strong {
+      color: #00ff00;
+    }
+  </style>
+</head>
+<body>
+  <!-- 网站 iframe -->
+  <iframe id="website-frame" src="https://ppengnan.github.io/"></iframe>
+  
+  <!-- 虚拟光标 -->
+  <div id="cursor"></div>
+  
+  <!-- 视频容器 -->
+  <div id="video-container">
+    <video id="input_video" autoplay playsinline muted></video>
+    <canvas id="output_canvas"></canvas>
+  </div>
+  
+  <!-- 信息面板 -->
+  <div id="info-panel">
+    <div class="gesture-info"><strong>手势控制:</strong></div>
+    <div class="gesture-info">✋ 张开手掌 - 移动光标</div>
+    <div class="gesture-info">👆 食指竖起 - 滚动页面</div>
+    <div class="gesture-info">👌 捏合手势 - 点击</div>
+    <div class="gesture-info" id="status">状态: 等待检测...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script>
+    const videoElement = document.getElementById('input_video');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    const cursor = document.getElementById('cursor');
+    const statusElement = document.getElementById('status');
+    
+    // 调整画布大小
+    function resizeCanvas() {
+      const container = document.getElementById('video-container');
+      canvasElement.width = container.clientWidth;
+      canvasElement.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    // 手势状态
+    let lastGesture = null;
+    let lastScrollY = 0;
+    let clickCooldown = false;
+    
+    // 计算两点距离
+    function getDistance(point1, point2) {
+      return Math.sqrt(
+        Math.pow(point1.x - point2.x, 2) + 
+        Math.pow(point1.y - point2.y, 2)
+      );
+    }
+    
+    // 识别手势类型
+    function recognizeGesture(landmarks) {
+      const thumbTip = landmarks[4];
+      const indexTip = landmarks[8];
+      const middleTip = landmarks[12];
+      const ringTip = landmarks[16];
+      const pinkyTip = landmarks[20];
+      const indexBase = landmarks[5];
+      const wrist = landmarks[0];
+      
+      // 计算食指是否伸直
+      const indexStraight = indexTip.y < indexBase.y;
+      const middleFolded = middleTip.y > landmarks[10].y;
+      const ringFolded = ringTip.y > landmarks[14].y;
+      const pinkyFolded = pinkyTip.y > landmarks[18].y;
+      
+      // 捏合手势 (拇指和食指距离很近)
+      const pinchDistance = getDistance(thumbTip, indexTip);
+      if (pinchDistance < 0.05) {
+        return { type: 'pinch', position: indexTip };
+      }
+      
+      // 食指竖起 (滚动)
+      if (indexStraight && middleFolded && ringFolded && pinkyFolded) {
+        return { type: 'scroll', position: indexTip };
+      }
+      
+      // 张开手掌 (移动光标)
+      const allExtended = 
+        indexTip.y < indexBase.y &&
+        middleTip.y < landmarks[10].y &&
+        ringTip.y < landmarks[14].y &&
+        pinkyTip.y < landmarks[18].y;
+      
+      if (allExtended) {
+        return { type: 'move', position: indexTip };
+      }
+      
+      return { type: 'none', position: indexTip };
+    }
+    
+    // 执行手势动作
+    function performGesture(gesture) {
+      const x = gesture.position.x * window.innerWidth;
+      const y = gesture.position.y * window.innerHeight;
+      
+      // 更新光标位置
+      cursor.style.left = x + 'px';
+      cursor.style.top = y + 'px';
+      cursor.style.display = 'block';
+      
+      switch(gesture.type) {
+        case 'move':
+          statusElement.textContent = '状态: 移动光标';
+          cursor.className = '';
+          break;
+          
+        case 'scroll':
+          statusElement.textContent = '状态: 滚动页面';
+          const scrollDelta = (y - lastScrollY) * 2;
+          window.scrollBy(0, scrollDelta);
+          lastScrollY = y;
+          break;
+          
+        case 'pinch':
+          statusElement.textContent = '状态: 点击';
+          cursor.className = 'clicking';
+          if (!clickCooldown) {
+            // 模拟点击
+            const clickEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window,
+              clientX: x,
+              clientY: y
+            });
+            document.elementFromPoint(x, y)?.dispatchEvent(clickEvent);
+            
+            clickCooldown = true;
+            setTimeout(() => clickCooldown = false, 500);
+          }
+          break;
+          
+        default:
+          statusElement.textContent = '状态: 等待手势';
+          cursor.style.display = 'none';
+      }
+    }
+    
+    // 初始化 MediaPipe Hands
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+    
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.5
+    });
+    
+    hands.onResults(results => {
+      // 绘制视频和手部追踪
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+      
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+        
+        // 绘制手部
+        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
+          color: '#00FF00', 
+          lineWidth: 2
+        });
+        drawLandmarks(canvasCtx, landmarks, {
+          color: '#FF0000', 
+          lineWidth: 1,
+          radius: 3
+        });
+        
+        // 识别并执行手势
+        const gesture = recognizeGesture(landmarks);
+        performGesture(gesture);
+      } else {
+        cursor.style.display = 'none';
+        statusElement.textContent = '状态: 未检测到手';
+      }
+      
+      canvasCtx.restore();
+    });
+    
+    // 启动摄像头
+    const camera = new Camera(videoElement, {
+      onFrame: async () => await hands.send({image: videoElement}),
+      width: 640,
+      height: 480
+    });
+    camera.start();
+  </script>
+</body>
+</html>
