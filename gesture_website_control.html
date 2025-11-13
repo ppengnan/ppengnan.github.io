@@ -180,45 +180,59 @@
       const middleTip = landmarks[12];
       const ringTip   = landmarks[16];
       const pinkyTip  = landmarks[20];
-    
+
       const indexBase  = landmarks[5];
       const middleBase = landmarks[9];
       const ringBase   = landmarks[13];
       const pinkyBase  = landmarks[17];
-    
+
+      // 1) 先算拇指-食指距离（捏合）
       const pinchDistance = getDistance(thumbTip, indexTip);
-    
-      const indexStraight = (indexBase.y - indexTip.y) > 0.12;
+
+      // 2) 判断每根手指是不是“伸直”
+      // y 越小 = 越靠上，所以 tip.y < base.y 代表伸直
+      const indexStraight = (indexBase.y - indexTip.y) > 0.05;
       const middleStraight = middleTip.y < middleBase.y;
       const ringStraight   = ringTip.y   < ringBase.y;
       const pinkyStraight  = pinkyTip.y  < pinkyBase.y;
+
       const allExtended =
         indexStraight && middleStraight && ringStraight && pinkyStraight;
-    
-      // ① 捏合
+
+      // 3) 手势优先级：
+      //    捏合 > 张开手掌 > 食指竖起滚动
+
+      // ① 捏合 = 点击
+      // ① 捏合 = 点击（加阈值 + 连续帧判断）
+      // 先用更严格的距离阈值，避免“半捏合”就触发
+      
+      
       if (pinchDistance < PINCH_DISTANCE_THRESHOLD) {
+        // 满足距离条件，开始累计帧数
         pinchFrameCount++;
+      
+        // 必须连续多帧都满足，才真正认为是“捏合”
         if (pinchFrameCount >= PINCH_FRAMES_REQUIRED) {
-          return { type: 'pinch', position: indexTip, pinchDistance };
+          return { type: 'pinch', position: indexTip };
         }
       } else {
+        // 一旦距离拉开，立刻重置计数
         pinchFrameCount = 0;
       }
-    
-      // ② 移动光标
+
+      // ② 四指都伸直 = 移动光标（张开手掌）
       if (allExtended) {
-        return { type: 'move', position: indexTip, pinchDistance };
+        return { type: 'move', position: indexTip };
       }
-    
-      // ③ 滚动
+
+      // ③ 只有食指明显伸直 = 滚动
       if (indexStraight) {
-        return { type: 'scroll', position: indexTip, pinchDistance };
+        return { type: 'scroll', position: indexTip };
       }
-    
-      // ④ 无手势
-      return { type: 'none', position: indexTip, pinchDistance };
+
+      // ④ 其他情况 = 无手势
+      return { type: 'none', position: indexTip };
     }
-    
 
     // 执行手势动作（加入滚动平滑 & 抗抖动）
     function performGesture(gesture) {
@@ -247,19 +261,14 @@
         case 'scroll': {
           statusElement.textContent = 'Status: Scroll the page';
         
-          // ❗ 禁止处于捏合状态的滚动（解决误触）
-          if (gesture.pinchDistance < PINCH_DISTANCE_THRESHOLD + 0.015) {
-            // 拇指靠近 → 禁止 scrolling
-            break;
-          }
-        
+          // 计算本次手指移动量（屏幕坐标：向下 = y 变大）
           const rawDelta = y - lastScrollY;
         
+          // 抗抖动：位移太小就不滚动，但要更新基准，否则会积累
           if (Math.abs(rawDelta) < 3) {
             lastScrollY = y;
             break;
           }
-
         
           const SCROLL_SPEED = 20; // 滚动速度
           const frame = document.getElementById('website-frame');
