@@ -203,7 +203,7 @@
 
     // 执行手势动作（加入滚动平滑 & 抗抖动）
     function performGesture(gesture) {
-      const x = gesture.position.x * window.innerWidth;
+      const x = (1 - gesture.position.x) * window.innerWidth;
       const y = gesture.position.y * window.innerHeight;
 
       // 如果当前是滚动手势并且刚刚从别的手势切换过来，
