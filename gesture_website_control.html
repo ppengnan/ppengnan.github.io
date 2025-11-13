@@ -25,13 +25,24 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
     
-    #input_video, #output_canvas {
+    #input_video {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
+      transform: scaleX(-1);       /* ❗ 视频翻转 */
     }
+    
+    #output_canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform: scaleX(-1);       /* ❗ 让骨架匹配视频 */
+    }
+
     
     #website-frame {
       position: fixed;
@@ -203,7 +214,7 @@
 
     // 执行手势动作（加入滚动平滑 & 抗抖动）
     function performGesture(gesture) {
-      const x = (1 - gesture.position.x) * window.innerWidth;
+      const x = gesture.position.x * window.innerWidth;
       const y = gesture.position.y * window.innerHeight;
 
       // 如果当前是滚动手势并且刚刚从别的手势切换过来，
