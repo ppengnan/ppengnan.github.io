@@ -248,8 +248,12 @@
           }
 
           // 🔹 调整滚动速度（越小越慢）
-          const SCROLL_SPEED = 20; // 之前是 *40，现在减半
-          const scrollDelta = rawDelta * SCROLL_SPEED;
+          const SCROLL_SPEED = 20; // 速度大小
+
+          // 右手：正常方向；左手：反向滚动
+          const direction = gesture.handedness === 'Left' ? -1 : 1;
+          
+          const scrollDelta = rawDelta * SCROLL_SPEED * direction;
 
           // 更新基准点
           lastScrollY = y;
@@ -320,7 +324,14 @@
         });
         
         // 识别并执行手势
+        // 识别左右手（Left / Right）
+        const handedness = results.multiHandedness?.[0]?.label || 'Right';
+        
+        // 识别并执行手势
         const gesture = recognizeGesture(landmarks);
+        // 把左右手信息挂在 gesture 上
+        gesture.handedness = handedness;
+        
         performGesture(gesture);
       } else {
         cursor.style.display = 'none';
