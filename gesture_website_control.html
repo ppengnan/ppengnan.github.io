@@ -273,15 +273,35 @@
           statusElement.textContent = '状态: 点击';
           cursor.className = 'clicking';
           if (!clickCooldown) {
-            const clickEvent = new MouseEvent('click', {
-              bubbles: true,
-              cancelable: true,
-              view: window,
-              clientX: x,
-              clientY: y
-            });
-            document.elementFromPoint(x, y)?.dispatchEvent(clickEvent);
-
+            // ✅ 获取 iframe 和其边界
+            const frame = document.getElementById('website-frame');
+            const frameRect = frame.getBoundingClientRect();
+            
+            // ✅ 计算相对于 iframe 内部的坐标
+            const iframeX = x - frameRect.left;
+            const iframeY = y - frameRect.top;
+            
+            // ✅ 在 iframe 内部触发点击
+            if (frame && frame.contentWindow) {
+              try {
+                const iframeDoc = frame.contentWindow.document;
+                const targetElement = iframeDoc.elementFromPoint(iframeX, iframeY);
+                
+                if (targetElement) {
+                  const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: frame.contentWindow,
+                    clientX: iframeX,
+                    clientY: iframeY
+                  });
+                  targetElement.dispatchEvent(clickEvent);
+                }
+              } catch (e) {
+                console.warn('跨域限制,无法访问 iframe 内容:', e);
+              }
+            }
+        
             clickCooldown = true;
             setTimeout(() => (clickCooldown = false), 500);
           }
