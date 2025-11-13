@@ -31,7 +31,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      transform: scaleX(-1);       /* ❗ 视频翻转 */
+      transform: scaleX(-1);
     }
     
     #output_canvas {
@@ -40,9 +40,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      transform: scaleX(-1);       /* ❗ 让骨架匹配视频 */
+      transform: scaleX(-1);
     }
-
     
     #website-frame {
       position: fixed;
@@ -70,6 +69,11 @@
       transform: scale(1.5);
     }
     
+    #cursor.pinching {
+      background: rgba(0, 255, 255, 0.3);
+      border-color: #00ffff;
+    }
+    
     #info-panel {
       position: fixed;
       bottom: 20px;
@@ -90,45 +94,39 @@
     .gesture-info strong {
       color: #00ff00;
     }
-      /* 退出按钮样式 */
+    
     #exit-btn {
-    position: absolute;      /* ✅ 用 absolute，相对于 #video-container */
-    top: 8px;
-    right: 8px;              /* ✅ 右上角 */
-    z-index: 1101;           /* 比视频和画布略高 */
-    padding: 6px 10px;
-    background: rgba(0, 0, 0, 0.75);
-    color: #fff;
-    border-radius: 999px;
-    text-decoration: none;
-    font-size: 12px;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    transition: background 0.2s ease, transform 0.1s ease;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 1101;
+      padding: 6px 10px;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 12px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      transition: background 0.2s ease, transform 0.1s ease;
     }
-
   </style>
 </head>
 <body>
-  <!-- 网站 iframe -->
   <iframe id="website-frame" src="https://ppengnan.github.io/"></iframe>
-  
-  <!-- 虚拟光标 -->
   <div id="cursor"></div>
   
-  <!-- 视频容器 -->
   <div id="video-container">
     <a href="/" id="exit-btn">← Exit Gesture Mode</a>
     <video id="input_video" autoplay playsinline muted></video>
     <canvas id="output_canvas"></canvas>
   </div>
   
-  <!-- 信息面板 -->
   <div id="info-panel">
     <div class="gesture-info"><strong>手势控制:</strong></div>
     <div class="gesture-info">✋ 张开手掌 - 移动光标</div>
-    <div class="gesture-info">👆 食指竖起 - 滚动页面</div>
-    <div class="gesture-info">👌 捏合手势 - 点击</div>
+    <div class="gesture-info">🤏 多指捏合+拖动 - 滚动页面</div>
+    <div class="gesture-info">👆 指尖双击 - 点击</div>
     <div class="gesture-info" id="status">状态: 等待检测...</div>
   </div>
 
@@ -142,7 +140,6 @@
     const cursor = document.getElementById('cursor');
     const statusElement = document.getElementById('status');
     
-    // 调整画布大小
     function resizeCanvas() {
       const container = document.getElementById('video-container');
       canvasElement.width = container.clientWidth;
@@ -152,9 +149,14 @@
     resizeCanvas();
     
     // 手势状态
-    let lastGesture = null;
     let lastScrollY = 0;
-    let clickCooldown = false;
+    let isPinching = false;
+    
+    // 双击检测
+    let lastTapTime = 0;
+    let lastTapPosition = null;
+    const DOUBLE_TAP_DELAY = 300; // 双击间隔时间(ms)
+    const TAP_DISTANCE_THRESHOLD = 0.05; // 双击位置容差
     
     // 计算两点距离
     function getDistance(point1, point2) {
@@ -164,132 +166,173 @@
       );
     }
     
-    // 识别手势类型（更稳定版）
-    function recognizeGesture(landmarks) {
-      const thumbTip  = landmarks[4];
-      const indexTip  = landmarks[8];
-      const middleTip = landmarks[12];
-      const ringTip   = landmarks[16];
-      const pinkyTip  = landmarks[20];
-
-      const indexBase  = landmarks[5];
-      const middleBase = landmarks[9];
-      const ringBase   = landmarks[13];
-      const pinkyBase  = landmarks[17];
-
-      // 1) 先算拇指-食指距离（捏合）
-      const pinchDistance = getDistance(thumbTip, indexTip);
-
-      // 2) 判断每根手指是不是“伸直”
-      // y 越小 = 越靠上，所以 tip.y < base.y 代表伸直
-      const indexStraight  = indexTip.y  < indexBase.y;
-      const middleStraight = middleTip.y < middleBase.y;
-      const ringStraight   = ringTip.y   < ringBase.y;
-      const pinkyStraight  = pinkyTip.y  < pinkyBase.y;
-
-      const allExtended =
-        indexStraight && middleStraight && ringStraight && pinkyStraight;
-
-      // 3) 手势优先级：
-      //    捏合 > 张开手掌 > 食指竖起滚动
-
-      // ① 捏合 = 点击
-      if (pinchDistance < 0.06) {   // 稍微放宽一点阈值
-        return { type: 'pinch', position: indexTip };
+    // 检测多个手指是否捏在一起
+    function detectMultiFingerPinch(landmarks) {
+      const fingerTips = [
+        landmarks[4],  // 拇指
+        landmarks[8],  // 食指
+        landmarks[12], // 中指
+        landmarks[16], // 无名指
+        landmarks[20]  // 小指
+      ];
+      
+      // 计算所有指尖之间的平均距离
+      let totalDistance = 0;
+      let pairCount = 0;
+      
+      for (let i = 0; i < fingerTips.length; i++) {
+        for (let j = i + 1; j < fingerTips.length; j++) {
+          totalDistance += getDistance(fingerTips[i], fingerTips[j]);
+          pairCount++;
+        }
       }
-
-      // ② 四指都伸直 = 移动光标（张开手掌）
+      
+      const avgDistance = totalDistance / pairCount;
+      
+      // 如果平均距离小于阈值，认为是捏合状态
+      // 阈值可以根据实际情况调整
+      return avgDistance < 0.15;
+    }
+    
+    // 检测手指是否伸直
+    function isFingerExtended(landmarks, fingerIndex) {
+      // fingerIndex: 8(食指), 12(中指), 16(无名指), 20(小指)
+      const tip = landmarks[fingerIndex];
+      const base = landmarks[fingerIndex - 3];
+      return tip.y < base.y;
+    }
+    
+    // 识别手势
+    function recognizeGesture(landmarks) {
+      const indexTip = landmarks[8];
+      
+      // 检测是否捏合
+      const pinching = detectMultiFingerPinch(landmarks);
+      
+      // 检测手指伸展情况
+      const indexExtended = isFingerExtended(landmarks, 8);
+      const middleExtended = isFingerExtended(landmarks, 12);
+      const ringExtended = isFingerExtended(landmarks, 16);
+      const pinkyExtended = isFingerExtended(landmarks, 20);
+      
+      const allExtended = indexExtended && middleExtended && ringExtended && pinkyExtended;
+      
+      // 手势优先级：捏合滚动 > 张开移动 > 其他
+      if (pinching) {
+        return { type: 'pinch_scroll', position: indexTip };
+      }
+      
       if (allExtended) {
         return { type: 'move', position: indexTip };
       }
-
-      // ③ 只有食指明显伸直 = 滚动
-      if (indexStraight) {
-        return { type: 'scroll', position: indexTip };
+      
+      // 单指伸出可用于双击
+      if (indexExtended && !middleExtended && !ringExtended) {
+        return { type: 'tap', position: indexTip };
       }
-
-      // ④ 其他情况 = 无手势
+      
       return { type: 'none', position: indexTip };
     }
-
-    // 执行手势动作（加入滚动平滑 & 抗抖动）
+    
+    // 执行手势动作
     function performGesture(gesture) {
       const x = (1 - gesture.position.x) * window.innerWidth;
       const y = gesture.position.y * window.innerHeight;
-
-      // 如果当前是滚动手势并且刚刚从别的手势切换过来，
-      // 先重置基准点，避免一上来就猛冲
-      if (gesture.type === 'scroll' && lastGesture !== 'scroll') {
-        lastScrollY = y;
-      }
-      // 记住上一帧的手势类型
-      lastGesture = gesture.type;
-
-      // 更新光标位置
+      
       cursor.style.left = x + 'px';
       cursor.style.top = y + 'px';
       cursor.style.display = 'block';
-
+      
       switch (gesture.type) {
         case 'move':
           statusElement.textContent = '状态: 移动光标';
           cursor.className = '';
+          isPinching = false;
           break;
-
-        case 'scroll': {
-          statusElement.textContent = '状态: 滚动页面';
-
-          // 计算本次手指移动量
+          
+        case 'pinch_scroll': {
+          statusElement.textContent = '状态: 捏合滚动';
+          cursor.className = 'pinching';
+          
+          // 第一次进入捏合状态，记录初始位置
+          if (!isPinching) {
+            lastScrollY = y;
+            isPinching = true;
+            break;
+          }
+          
+          // 计算移动量
           const rawDelta = y - lastScrollY;
-
-          // 🔹 抗抖动：如果移动太小，就当作没动（不上下抖）
+          
+          // 抗抖动
           if (Math.abs(rawDelta) < 3) {
             break;
           }
-
-          // 🔹 调整滚动速度（越小越慢）
-          const SCROLL_SPEED = 20; // 速度大小
-
-          // 右手：正常方向；左手：反向滚动
-          const direction = gesture.handedness === 'Left' ? -1 : 1;
           
-          const scrollDelta = rawDelta * SCROLL_SPEED * direction;
-
-          // 更新基准点
+          // 滚动速度
+          const SCROLL_SPEED = 2.5;
+          const scrollDelta = rawDelta * SCROLL_SPEED;
+          
           lastScrollY = y;
-
-          // 滚动 iframe 里的页面
+          
+          // 滚动iframe
           const frame = document.getElementById('website-frame');
           if (frame && frame.contentWindow) {
             frame.contentWindow.scrollBy(0, scrollDelta);
           }
           break;
         }
-
-        case 'pinch':
-          statusElement.textContent = '状态: 点击';
-          cursor.className = 'clicking';
-          if (!clickCooldown) {
-            const clickEvent = new MouseEvent('click', {
-              bubbles: true,
-              cancelable: true,
-              view: window,
-              clientX: x,
-              clientY: y
-            });
-            document.elementFromPoint(x, y)?.dispatchEvent(clickEvent);
-
-            clickCooldown = true;
-            setTimeout(() => (clickCooldown = false), 500);
+        
+        case 'tap': {
+          statusElement.textContent = '状态: 准备点击';
+          cursor.className = '';
+          isPinching = false;
+          
+          // 双击检测
+          const currentTime = Date.now();
+          const currentPosition = { x: gesture.position.x, y: gesture.position.y };
+          
+          if (lastTapTime && (currentTime - lastTapTime) < DOUBLE_TAP_DELAY) {
+            // 检查位置是否接近
+            if (lastTapPosition && getDistance(currentPosition, lastTapPosition) < TAP_DISTANCE_THRESHOLD) {
+              // 触发点击
+              statusElement.textContent = '状态: 双击触发!';
+              cursor.className = 'clicking';
+              
+              const clickEvent = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                clientX: x,
+                clientY: y
+              });
+              
+              document.elementFromPoint(x, y)?.dispatchEvent(clickEvent);
+              
+              // 重置双击状态
+              lastTapTime = 0;
+              lastTapPosition = null;
+              
+              setTimeout(() => {
+                cursor.className = '';
+              }, 300);
+              
+              break;
+            }
           }
+          
+          // 记录本次点击
+          lastTapTime = currentTime;
+          lastTapPosition = currentPosition;
           break;
-
+        }
+        
         default:
           statusElement.textContent = '状态: 等待手势';
           cursor.style.display = 'none';
+          isPinching = false;
       }
     }
-
     
     // 初始化 MediaPipe Hands
     const hands = new Hands({
@@ -304,7 +347,6 @@
     });
     
     hands.onResults(results => {
-      // 绘制视频和手部追踪
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
@@ -312,7 +354,6 @@
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         const landmarks = results.multiHandLandmarks[0];
         
-        // 绘制手部
         drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
           color: '#0000FF', 
           lineWidth: 1
@@ -323,19 +364,12 @@
           radius: 2
         });
         
-        // 识别并执行手势
-        // 识别左右手（Left / Right）
-        const handedness = results.multiHandedness?.[0]?.label || 'Right';
-        
-        // 识别并执行手势
         const gesture = recognizeGesture(landmarks);
-        // 把左右手信息挂在 gesture 上
-        gesture.handedness = handedness;
-        
         performGesture(gesture);
       } else {
         cursor.style.display = 'none';
         statusElement.textContent = '状态: 未检测到手';
+        isPinching = false;
       }
       
       canvasCtx.restore();
