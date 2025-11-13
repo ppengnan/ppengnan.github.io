@@ -212,11 +212,17 @@
           
         case 'scroll':
           statusElement.textContent = '状态: 滚动页面';
-          const scrollDelta = (y - lastScrollY) * 2;
-          window.scrollBy(0, scrollDelta);
+        
+          // 计算滚动距离（可以稍微放大一点，让滚动更明显）
+          const scrollDelta = (y - lastScrollY) * 40;
           lastScrollY = y;
+        
+          // 滚动 iframe 里的页面
+          const frame = document.getElementById('website-frame');
+          if (frame && frame.contentWindow) {
+            frame.contentWindow.scrollBy(0, scrollDelta);
+          }
           break;
-          
         case 'pinch':
           statusElement.textContent = '状态: 点击';
           cursor.className = 'clicking';
