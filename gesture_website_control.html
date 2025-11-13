@@ -201,40 +201,60 @@
       return { type: 'none', position: indexTip };
     }
 
-    // 执行手势动作
+    // 执行手势动作（加入滚动平滑 & 抗抖动）
     function performGesture(gesture) {
       const x = gesture.position.x * window.innerWidth;
       const y = gesture.position.y * window.innerHeight;
-      
+
+      // 如果当前是滚动手势并且刚刚从别的手势切换过来，
+      // 先重置基准点，避免一上来就猛冲
+      if (gesture.type === 'scroll' && lastGesture !== 'scroll') {
+        lastScrollY = y;
+      }
+      // 记住上一帧的手势类型
+      lastGesture = gesture.type;
+
       // 更新光标位置
       cursor.style.left = x + 'px';
       cursor.style.top = y + 'px';
       cursor.style.display = 'block';
-      
-      switch(gesture.type) {
+
+      switch (gesture.type) {
         case 'move':
           statusElement.textContent = '状态: 移动光标';
           cursor.className = '';
           break;
-          
-        case 'scroll':
+
+        case 'scroll': {
           statusElement.textContent = '状态: 滚动页面';
-        
-          // 计算滚动距离（可以稍微放大一点，让滚动更明显）
-          const scrollDelta = (y - lastScrollY) * 40;
+
+          // 计算本次手指移动量
+          const rawDelta = y - lastScrollY;
+
+          // 🔹 抗抖动：如果移动太小，就当作没动（不上下抖）
+          if (Math.abs(rawDelta) < 3) {
+            break;
+          }
+
+          // 🔹 调整滚动速度（越小越慢）
+          const SCROLL_SPEED = 20; // 之前是 *40，现在减半
+          const scrollDelta = rawDelta * SCROLL_SPEED;
+
+          // 更新基准点
           lastScrollY = y;
-        
+
           // 滚动 iframe 里的页面
           const frame = document.getElementById('website-frame');
           if (frame && frame.contentWindow) {
             frame.contentWindow.scrollBy(0, scrollDelta);
           }
           break;
+        }
+
         case 'pinch':
           statusElement.textContent = '状态: 点击';
           cursor.className = 'clicking';
           if (!clickCooldown) {
-            // 模拟点击
             const clickEvent = new MouseEvent('click', {
               bubbles: true,
               cancelable: true,
@@ -243,17 +263,18 @@
               clientY: y
             });
             document.elementFromPoint(x, y)?.dispatchEvent(clickEvent);
-            
+
             clickCooldown = true;
-            setTimeout(() => clickCooldown = false, 500);
+            setTimeout(() => (clickCooldown = false), 500);
           }
           break;
-          
+
         default:
           statusElement.textContent = '状态: 等待手势';
           cursor.style.display = 'none';
       }
     }
+
     
     // 初始化 MediaPipe Hands
     const hands = new Hands({
