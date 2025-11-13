@@ -241,33 +241,43 @@
 
         case 'scroll': {
           statusElement.textContent = 'Status: Scroll the page';
-
-          // 计算本次手指移动量
+        
+          // 计算本次手指移动量（屏幕坐标：向下 = y 变大）
           const rawDelta = y - lastScrollY;
-
-          // 🔹 抗抖动：如果移动太小，就当作没动（不上下抖）
+        
+          // 抗抖动：位移太小就不滚动，但要更新基准，否则会积累
           if (Math.abs(rawDelta) < 3) {
+            lastScrollY = y;
             break;
           }
-
-          // 🔹 调整滚动速度（越小越慢）
-          const SCROLL_SPEED = 20; // 速度大小
-
-          // 右手：正常方向；左手：反向滚动
-          const direction = gesture.handedness === 'Left' ? -1 : 1;
-          
-          const scrollDelta = rawDelta * SCROLL_SPEED * direction;
-
+        
+          const SCROLL_SPEED = 20; // 滚动速度
+          const frame = document.getElementById('website-frame');
+          if (!(frame && frame.contentWindow)) {
+            lastScrollY = y;
+            break;
+          }
+        
+          // 右手：只允许“向下滑”触发滚动（rawDelta > 0）
+          if (gesture.handedness === 'Right') {
+            if (rawDelta > 0) {
+              const scrollDelta = rawDelta * SCROLL_SPEED; // 正值 -> 向下滚
+              frame.contentWindow.scrollBy(0, scrollDelta);
+            }
+          }
+          // 左手：只允许“向上滑”触发滚动（rawDelta < 0）
+          else if (gesture.handedness === 'Left') {
+            if (rawDelta < 0) {
+              const scrollDelta = rawDelta * SCROLL_SPEED; // 负值 -> 向上滚
+              frame.contentWindow.scrollBy(0, scrollDelta);
+            }
+          }
+        
           // 更新基准点
           lastScrollY = y;
-
-          // 滚动 iframe 里的页面
-          const frame = document.getElementById('website-frame');
-          if (frame && frame.contentWindow) {
-            frame.contentWindow.scrollBy(0, scrollDelta);
-          }
           break;
         }
+
 
         case 'pinch':
           statusElement.textContent = 'Status: Click';
