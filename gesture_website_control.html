@@ -95,18 +95,18 @@
     }
       /* 退出按钮样式 */
     #exit-btn {
-      position: absolute;
-      bottom: 8px;
-      right: 8px;
-      z-index: 1101;
-      padding: 6px 10px;
-      background: rgba(0, 0, 0, 0.75);
+      position: fixed;       /* ❗ FIXED，固定在屏幕上，而不是视频里 */
+      bottom: 20px;          /* 距离屏幕底部 */
+      right: 20px;           /* 距离屏幕右侧 */
+      z-index: 2000;         /* 比视频、光标都高 */
+      padding: 8px 14px;
+      background: rgba(0, 0, 0, 0.8);
       color: #fff;
       border-radius: 999px;
       text-decoration: none;
-      font-size: 12px;
+      font-size: 14px;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       transition: background 0.2s ease, transform 0.1s ease;
     }
 
@@ -121,10 +121,10 @@
   
   <!-- 视频容器 -->
   <div id="video-container">
-    <a href="/" id="exit-btn">← Exit Gesture Mode</a>
     <video id="input_video" autoplay playsinline muted></video>
     <canvas id="output_canvas"></canvas>
   </div>
+  <a href="/" id="exit-btn">← Exit Gesture Mode</a>
   
   <!-- 信息面板 -->
   <div id="info-panel">
@@ -189,7 +189,7 @@
 
       // 2) 判断每根手指是不是“伸直”
       // y 越小 = 越靠上，所以 tip.y < base.y 代表伸直
-      const indexStraight  = indexTip.y  < indexBase.y;
+      const indexStraight = (indexBase.y - indexTip.y) > 0.05;
       const middleStraight = middleTip.y < middleBase.y;
       const ringStraight   = ringTip.y   < ringBase.y;
       const pinkyStraight  = pinkyTip.y  < pinkyBase.y;
