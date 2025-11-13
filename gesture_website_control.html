@@ -81,29 +81,25 @@
     }
       /* 退出按钮样式 */
     #exit-btn {
-      position: fixed;
-      top: 16px;
-      left: 16px;
-      z-index: 1100;              /* 比视频窗口 & 光标都高 */
-      padding: 8px 14px;
-      background: rgba(0, 0, 0, 0.75);
-      color: #fff;
-      border-radius: 999px;
-      text-decoration: none;
-      font-size: 14px;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      transition: background 0.2s ease, transform 0.1s ease;
+    position: absolute;      /* ✅ 用 absolute，相对于 #video-container */
+    top: 8px;
+    right: 8px;              /* ✅ 右上角 */
+    z-index: 1101;           /* 比视频和画布略高 */
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 12px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: background 0.2s ease, transform 0.1s ease;
     }
-    #exit-btn:hover {
-      background: rgba(0, 0, 0, 0.9);
-      transform: translateY(-1px);
-    }
+
   </style>
 </head>
 <body>
   <!-- 网站 iframe -->
-  <a href="/" id="exit-btn">← Exit Gesture Mode</a>
   <iframe id="website-frame" src="https://ppengnan.github.io/"></iframe>
   
   <!-- 虚拟光标 -->
@@ -111,6 +107,7 @@
   
   <!-- 视频容器 -->
   <div id="video-container">
+    <a href="/" id="exit-btn">← Exit Gesture Mode</a>
     <video id="input_video" autoplay playsinline muted></video>
     <canvas id="output_canvas"></canvas>
   </div>
