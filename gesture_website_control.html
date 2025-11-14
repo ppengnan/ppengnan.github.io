@@ -137,8 +137,8 @@
   <div id="info-panel">
     <div class="gesture-info"><strong>Gesture Control:</strong></div>
     <div class="gesture-info">✋ Spread your palm - Move the cursor</div>
-    <div class="gesture-info">🤏 Pinch ≥ 1s + drag – Scroll the page</div>
-    <div class="gesture-info">🤏 Pinch &lt; 1s – Click</div>
+    <div class="gesture-info">🤏 Pinch ≥ 0.5s + drag – Scroll the page</div>
+    <div class="gesture-info">🤏 Pinch &lt; 0.5s – Click</div>
     <div class="gesture-info" id="status">Status: Waiting for detection…</div>
   </div>
 
@@ -165,9 +165,9 @@
 
     // 1秒阈值 + 1cm 圆圈尺寸
     const PINCH_FRAMES_REQUIRED = 3;
-    const PINCH_DISTANCE_THRESHOLD = 0.035;
-    const SCROLL_SPEED = 10;             // 改小：让滑动更慢更稳
-    const SCROLL_ACTIVATE_TIME = 1000;   // ms，捏住 >= 1 秒进入滚动模式
+    const PINCH_DISTANCE_THRESHOLD = 0.045;
+    const SCROLL_SPEED = 6;             // 改小：让滑动更慢更稳
+    const SCROLL_ACTIVATE_TIME = 500;   // ms，捏住 >= 1 秒进入滚动模式
     const CIRCLE_DIAMETER_PX = 40;       // 约 1cm（屏幕上）
     const CIRCLE_RADIUS_PX = CIRCLE_DIAMETER_PX / 2;
 
