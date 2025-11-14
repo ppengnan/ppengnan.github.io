@@ -31,7 +31,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      transform: scaleX(-1);       /* ❗ 视频翻转 */
+      transform: scaleX(-1);
     }
     
     #output_canvas {
@@ -40,9 +40,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      transform: scaleX(-1);       /* ❗ 让骨架匹配视频 */
+      transform: scaleX(-1);
     }
-
     
     #website-frame {
       position: fixed;
@@ -92,7 +91,7 @@
     .gesture-info strong {
       color: #00ff00;
     }
-      /* 退出按钮样式 */
+    
     #exit-btn {
       position: absolute;
       top: 8px;
@@ -108,26 +107,18 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       transition: background 0.2s ease, transform 0.1s ease;
     }
-
-
   </style>
 </head>
 <body>
-  <!-- 网站 iframe -->
   <iframe id="website-frame" src="https://ppengnan.github.io/"></iframe>
-  
-  <!-- 虚拟光标 -->
   <div id="cursor"></div>
   
-  <!-- 视频容器 -->
   <div id="video-container">
     <a href="/" id="exit-btn">← Exit Gesture Mode</a>
     <video id="input_video" autoplay playsinline muted></video>
     <canvas id="output_canvas"></canvas>
   </div>
-
   
-  <!-- 信息面板 -->
   <div id="info-panel">
     <div class="gesture-info"><strong>Gesture Control:</strong></div>
     <div class="gesture-info">✋ Spread your palm - Move the cursor</div>
@@ -154,21 +145,18 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
     
-    // ---------- 全局状态（主要改动：为左右手分别跟踪捏合状态） ----------
     let clickCooldown = false;
 
-    // 用于 per-handedness 跟踪捏合拖动（Left / Right）
     const pinchState = {
-      Left:  { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false },
-      Right: { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false }
+      Left:  { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false, smoothY: null },
+      Right: { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false, smoothY: null }
     };
 
-    // 参数：阈值和时间
-    const PINCH_FRAMES_REQUIRED = 3;      // 连续帧数确定开始捏合
-    const PINCH_DISTANCE_THRESHOLD = 0.035; // 捏合距离阈值（可调）
-    const SCROLL_SPEED = 22;              // 滚动速度系数（可调）
-    const CLICK_MAX_DURATION = 300;       // ms，短促捏合视为点击
-    const CLICK_MAX_MOVE = 8;             // px，短促捏合允许的最大移动量
+    const PINCH_FRAMES_REQUIRED = 3;
+    const PINCH_DISTANCE_THRESHOLD = 0.035;
+    const SCROLL_SPEED = 22;
+    const CLICK_MAX_DURATION = 300;
+    const CLICK_MAX_MOVE = 15;
 
     function getDistance(point1, point2) {
       return Math.sqrt(
@@ -177,7 +165,6 @@
       );
     }
 
-    // recognizeGesture 现在只负责返回关键点（拇指、食指、手指伸直等），实际动作由 performGesture 处理
     function recognizeGesture(landmarks) {
       const thumbTip  = landmarks[4];
       const indexTip  = landmarks[8];
@@ -190,7 +177,6 @@
       const pinkyBase  = landmarks[17];
 
       const pinchDistance = getDistance(thumbTip, indexTip);
-      // 食指伸直判定（用于移动光标）
       const indexStraight = (indexBase.y - indexTip.y) > 0.05;
       const allExtended = indexStraight && (middleTip.y < middleBase.y) && (ringTip.y < ringBase.y) && (pinkyTip.y < pinkyBase.y);
       return {
@@ -201,71 +187,62 @@
       };
     }
 
-    // performGesture 修改要点：
-    // - 捏合且持续：开始“捏合拖拽滚动”（捏合开始记录 startY / startTime）
-    // - 捏合过程中：计算 y delta -> 滚动 iframe（支持左右手独立）
-    // - 捏合结束：若持续时间短且移动小 -> 触发点击；否则结束滚动，不触发点击
     function performGestureForHand(handedness, gestureData) {
-      // handedness: "Left" / "Right"
       const state = pinchState[handedness];
       const indexTip = gestureData.indexTip;
       const pinchDistance = gestureData.pinchDistance;
       const allExtended = gestureData.allExtended;
       const indexStraight = gestureData.indexStraight;
 
-      // 屏幕坐标
       const x = (1 - indexTip.x) * window.innerWidth;
       const y = indexTip.y * window.innerHeight;
 
-      // 显示光标在手指处（合并两手时会覆盖，但这是可以接受的）
       cursor.style.left = x + 'px';
       cursor.style.top = y + 'px';
       cursor.style.display = 'block';
 
-      // 捏合判定（连续帧）
       if (pinchDistance < PINCH_DISTANCE_THRESHOLD) {
         state.frameCount++;
       } else {
         state.frameCount = 0;
       }
 
-      // 如果连续满足，认为进入“捏合进行中”
       if (!state.isPinching && state.frameCount >= PINCH_FRAMES_REQUIRED) {
-        // 捏合开始
         state.isPinching = true;
         state.startY = y;
         state.lastY = y;
+        state.smoothY = y;
         state.startTime = performance.now();
         state.moved = false;
-        // 状态提示
         statusElement.textContent = `Status: ${handedness} hand pinching - start drag`;
       }
 
-      // 如果当前处于捏合中（持续）
       if (state.isPinching) {
-        const rawDelta = y - state.lastY; // 向下为正
-        // 抗抖：只在明显移动时滚动
-        if (Math.abs(rawDelta) >= 2) {
-          // 对 iframe 进行滚动：左右手可约定不同方向或都允许任意方向滚动（这里允许任意方向）
+        if (state.smoothY === null) {
+          state.smoothY = y;
+        } else {
+          state.smoothY = state.smoothY * 0.7 + y * 0.3;
+        }
+        
+        const rawDelta = state.smoothY - state.lastY;
+        
+        if (Math.abs(rawDelta) >= 3) {
           const frame = document.getElementById('website-frame');
           if (frame && frame.contentWindow) {
             const scrollDelta = rawDelta * SCROLL_SPEED;
             try {
               frame.contentWindow.scrollBy(0, scrollDelta);
             } catch (e) {
-              // 可能跨域，不能访问 iframe 内容
-              // 作为降级措施，我们可以调 window.scrollBy（滚动当前页面）
               window.scrollBy(0, scrollDelta);
             }
           } else {
             window.scrollBy(0, rawDelta * SCROLL_SPEED);
           }
-          state.moved = state.moved || Math.abs(y - state.startY) > CLICK_MAX_MOVE;
+          state.moved = true;
+          state.lastY = state.smoothY;
         }
-        state.lastY = y;
       }
 
-      // 如果没有捏合（也可能是张开手 palm move），显示移动光标或滚动提示
       if (!state.isPinching) {
         if (allExtended) {
           statusElement.textContent = 'Status: Move the cursor (palm)';
@@ -274,38 +251,32 @@
           statusElement.textContent = 'Status: Index up (no scroll - now use pinch drag)';
         } else {
           statusElement.textContent = 'Status: Waiting for gesture…';
-          // 若没有任何手势，光标也可隐藏（可根据偏好调整）
-          // cursor.style.display = 'none';
         }
       }
     }
 
-    // 处理捏合结束（针对某个 hand）
     function handlePinchEnd(handedness) {
       const state = pinchState[handedness];
       if (!state.isPinching) return;
       const duration = performance.now() - state.startTime;
       const totalMove = Math.abs(state.lastY - state.startY || 0);
 
-      // 短促且移动小 -> 点击
-      if (duration < CLICK_MAX_DURATION && totalMove <= CLICK_MAX_MOVE) {
-        // 触发点击（同原来逻辑）
+      if (duration < CLICK_MAX_DURATION && !state.moved) {
         triggerClickAtCursor();
         statusElement.textContent = `Status: ${handedness} click`;
       } else {
         statusElement.textContent = `Status: ${handedness} pinch ended`;
       }
 
-      // 重置状态
       state.isPinching = false;
       state.frameCount = 0;
       state.lastY = null;
       state.startY = null;
+      state.smoothY = null;
       state.startTime = null;
       state.moved = false;
     }
 
-    // 点击逻辑（与原来类似）
     function triggerClickAtCursor() {
       if (clickCooldown) return;
       const frame = document.getElementById('website-frame');
@@ -343,12 +314,10 @@
       }, 400);
     }
 
-    // ---------- 初始化 MediaPipe Hands ----------
     const hands = new Hands({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
     
-    // 允许检测左右手（maxNumHands: 2）
     hands.setOptions({
       maxNumHands: 2,
       modelComplexity: 1,
@@ -361,7 +330,6 @@
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
       
-      // 先把所有手都绘制出来（如果有）
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         for (let i = 0; i < results.multiHandLandmarks.length; i++) {
           const landmarks = results.multiHandLandmarks[i];
@@ -376,17 +344,14 @@
           });
         }
 
-        // 对每只手分别识别并执行：使用 results.multiHandedness 对应标签
         for (let i = 0; i < results.multiHandLandmarks.length; i++) {
           const landmarks = results.multiHandLandmarks[i];
           const rawHandedness = (results.multiHandedness && results.multiHandedness[i] && results.multiHandedness[i].label) || 'Right';
-          // 因为视频镜像翻转，需要反转左右手标签
           const handedness = rawHandedness === 'Left' ? 'Right' : 'Left';
           const g = recognizeGesture(landmarks);
           performGestureForHand(handedness, g);
         }
       } else {
-        // 当没有手时：如果之前仍处于捏合状态（可能突然丢失），需要收尾（把两只手的捏合都结束）
         handlePinchEnd('Left');
         handlePinchEnd('Right');
         cursor.style.display = 'none';
@@ -396,7 +361,6 @@
       canvasCtx.restore();
     });
     
-    // 启动摄像头
     const camera = new Camera(videoElement, {
       onFrame: async () => await hands.send({image: videoElement}),
       width: 640,
@@ -404,18 +368,14 @@
     });
     camera.start();
 
-    // 监听一个小定时器来探测“捏合结束”的边界情况：
-    // 如果某一帧满足捏合开始（isPinching）但下一帧又没有，则 handlePinchEnd 应该被调用。
-    // 我们通过定时器定期检查 frameCount（若 frameCount==0 且此前 isPinching）则结束。
     setInterval(() => {
       ['Left','Right'].forEach(h => {
         const s = pinchState[h];
         if (s.isPinching && s.frameCount === 0) {
-          // 捏合刚刚结束
           handlePinchEnd(h);
         }
       });
-    }, 80); // 每 80ms 检查一次（可调）
+    }, 80);
 
   </script>
 </body>
