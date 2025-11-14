@@ -148,15 +148,15 @@
     let clickCooldown = false;
 
     const pinchState = {
-      Left:  { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false, smoothY: null, initialScrollY: 0 },
-      Right: { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false, smoothY: null, initialScrollY: 0 }
+      Left:  { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false, smoothY: null },
+      Right: { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false, smoothY: null }
     };
 
-    const PINCH_FRAMES_REQUIRED = 2;
-    const PINCH_DISTANCE_THRESHOLD = 0.04;
-    const SCROLL_SENSITIVITY = 2.5;  // 手移动1px，页面滚动2.5px
-    const CLICK_MAX_DURATION = 250;
-    const CLICK_MAX_MOVE = 20;
+    const PINCH_FRAMES_REQUIRED = 3;
+    const PINCH_DISTANCE_THRESHOLD = 0.035;
+    const SCROLL_SPEED = 22;
+    const CLICK_MAX_DURATION = 300;
+    const CLICK_MAX_MOVE = 15;
 
     function getDistance(point1, point2) {
       return Math.sqrt(
@@ -214,47 +214,32 @@
         state.smoothY = y;
         state.startTime = performance.now();
         state.moved = false;
-        
-        // 记录页面初始滚动位置
-        const frame = document.getElementById('website-frame');
-        try {
-          state.initialScrollY = frame.contentWindow.scrollY || frame.contentWindow.pageYOffset || 0;
-        } catch (e) {
-          state.initialScrollY = window.scrollY || window.pageYOffset || 0;
-        }
-        
-        statusElement.textContent = `Status: ${handedness} hand pinching - ready to scroll`;
+        statusElement.textContent = `Status: ${handedness} hand pinching - start drag`;
       }
 
       if (state.isPinching) {
-        // 简单平滑（减少抖动）
         if (state.smoothY === null) {
           state.smoothY = y;
         } else {
-          state.smoothY = state.smoothY * 0.6 + y * 0.4;
+          state.smoothY = state.smoothY * 0.7 + y * 0.3;
         }
         
-        // Vision Pro 风格：计算从起点的总位移
-        const totalDelta = state.smoothY - state.startY;
+        const rawDelta = state.smoothY - state.lastY;
         
-        // 只要有明显移动就标记
-        if (Math.abs(totalDelta) > 5) {
-          state.moved = true;
-        }
-        
-        // 计算目标滚动位置 = 初始位置 - 手的位移 * 灵敏度
-        const targetScrollY = state.initialScrollY - (totalDelta * SCROLL_SENSITIVITY);
-        
-        const frame = document.getElementById('website-frame');
-        if (frame && frame.contentWindow) {
-          try {
-            // 直接设置滚动位置（不是增量）
-            frame.contentWindow.scrollTo(0, targetScrollY);
-          } catch (e) {
-            window.scrollTo(0, targetScrollY);
+        if (Math.abs(rawDelta) >= 3) {
+          const frame = document.getElementById('website-frame');
+          if (frame && frame.contentWindow) {
+            const scrollDelta = rawDelta * SCROLL_SPEED;
+            try {
+              frame.contentWindow.scrollBy(0, scrollDelta);
+            } catch (e) {
+              window.scrollBy(0, scrollDelta);
+            }
+          } else {
+            window.scrollBy(0, rawDelta * SCROLL_SPEED);
           }
-        } else {
-          window.scrollTo(0, targetScrollY);
+          state.moved = true;
+          state.lastY = state.smoothY;
         }
       }
 
