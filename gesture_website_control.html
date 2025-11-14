@@ -295,28 +295,26 @@
 
         const elapsed = now - state.startTime;
 
-        // 满 1 秒，进入滚动模式，显示圆圈（锚点固定）
+        // 满 1 秒，进入滚动模式，显示圆圈
         if (elapsed >= SCROLL_ACTIVATE_TIME && state.mode === 'pending') {
           state.mode = 'scroll';
           state.circleActive = true;
-
-          // 用当前平滑后的 Y 作为锚点
           state.circleCenterX = x;
-          state.circleCenterY = state.smoothY;
-          state.lastScrollY = state.smoothY;
+          state.circleCenterY = y;
+          state.lastScrollY = y;
 
           pinchCircle.style.display = 'block';
-          pinchCircle.style.left = (state.circleCenterX - CIRCLE_RADIUS_PX) + 'px';
-          pinchCircle.style.top  = (state.circleCenterY - CIRCLE_RADIUS_PX) + 'px';
+          pinchCircle.style.left = (x - CIRCLE_RADIUS_PX) + 'px';
+          pinchCircle.style.top  = (y - CIRCLE_RADIUS_PX) + 'px';
           pinchCircle.style.width  = CIRCLE_DIAMETER_PX + 'px';
           pinchCircle.style.height = CIRCLE_DIAMETER_PX + 'px';
 
           statusElement.textContent = `Status: ${handedness} hand scroll mode (pinch ≥ 1s)`;
         }
 
-        // 滚动模式：相对固定圆圈中心的平滑 Y 偏移来判断是否滚动
+        // 滚动模式：捏合交点相对圆圈中心移动超出 1cm 才滚动页面
         if (state.mode === 'scroll' && state.circleActive) {
-          const dyFromCircle = state.smoothY - state.circleCenterY;
+          const dyFromCircle = y - state.circleCenterY;
 
           if (Math.abs(dyFromCircle) > CIRCLE_RADIUS_PX) {
             const frame = document.getElementById('website-frame');
@@ -335,8 +333,12 @@
             state.moved = true;
             state.lastScrollY = state.smoothY;
 
-            // ❗ 不再更新 circleCenterX / circleCenterY，
-            // 圆圈始终停在进入滚动模式时的锚点位置
+            // 圆圈跟随捏合点移动（每次滚动后更新圆心，形成“死区”）
+            state.circleCenterX = x;
+            state.circleCenterY = y;
+            pinchCircle.style.left = (state.circleCenterX - CIRCLE_RADIUS_PX) + 'px';
+            pinchCircle.style.top  = (state.circleCenterY - CIRCLE_RADIUS_PX) + 'px';
+
             statusElement.textContent = `Status: ${handedness} scrolling`;
           } else {
             statusElement.textContent = `Status: ${handedness} pinch inside circle (no scroll)`;
