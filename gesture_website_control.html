@@ -168,8 +168,12 @@
     const PINCH_DISTANCE_THRESHOLD = 0.045;
     const SCROLL_SPEED = 6;             // 改小：让滑动更慢更稳
     const SCROLL_ACTIVATE_TIME = 500;   // ms，捏住 >= 1 秒进入滚动模式
-    const CIRCLE_DIAMETER_PX = 40;       // 约 1cm（屏幕上）
+    const CIRCLE_DIAMETER_PX = 40;      // 约 1cm（屏幕上）
     const CIRCLE_RADIUS_PX = CIRCLE_DIAMETER_PX / 2;
+
+    // 点击容错区域（策略5）
+    const CLICK_SEARCH_RADIUS = 25;     // 光标附近搜索半径，像素
+    const CLICK_SEARCH_STEP = 5;        // 搜索步长，像素
 
     const pinchState = {
       Left:  { 
@@ -388,6 +392,33 @@
       pinchCircle.style.display = 'none';
     }
 
+    // 在 iframe 内部，以 (x, y) 为中心，在一个小方形区域内搜索最近的可点击元素
+    function findBestClickableInIframe(iframeDoc, x, y) {
+      let bestElement = null;
+      let bestDistance = Infinity;
+
+      for (let dx = -CLICK_SEARCH_RADIUS; dx <= CLICK_SEARCH_RADIUS; dx += CLICK_SEARCH_STEP) {
+        for (let dy = -CLICK_SEARCH_RADIUS; dy <= CLICK_SEARCH_RADIUS; dy += CLICK_SEARCH_STEP) {
+          const testX = x + dx;
+          const testY = y + dy;
+          const el = iframeDoc.elementFromPoint(testX, testY);
+          if (!el) continue;
+
+          // 限定可点击元素：a、button、role="button"、有 onclick 的元素
+          const clickable = el.closest('a, button, [role="button"], [onclick]');
+          if (!clickable) continue;
+
+          const dist = Math.hypot(dx, dy);
+          if (dist < bestDistance) {
+            bestDistance = dist;
+            bestElement = clickable;
+          }
+        }
+      }
+
+      return bestElement;
+    }
+
     function triggerClickAtCursor() {
       if (clickCooldown) return;
       const frame = document.getElementById('website-frame');
@@ -400,15 +431,27 @@
       if (frame && frame.contentWindow) {
         try {
           const iframeDoc = frame.contentWindow.document;
-          const targetElement = iframeDoc.elementFromPoint(iframeX, iframeY);
+
+          // 先在附近区域找“最近的可点击元素”（策略5）
+          let targetElement = findBestClickableInIframe(iframeDoc, iframeX, iframeY);
+
+          // 如果附近找不到，就退回到光标正下方的元素
+          if (!targetElement) {
+            const el = iframeDoc.elementFromPoint(iframeX, iframeY);
+            if (el) {
+              targetElement = el.closest('a, button, [role="button"], [onclick]') || el;
+            }
+          }
           
           if (targetElement) {
+            const rect = targetElement.getBoundingClientRect();
             const clickEvent = new MouseEvent('click', {
               bubbles: true,
               cancelable: true,
               view: frame.contentWindow,
-              clientX: iframeX,
-              clientY: iframeY
+              // 用元素中心点发点击，更稳一点
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + rect.height / 2
             });
             targetElement.dispatchEvent(clickEvent);
           }
