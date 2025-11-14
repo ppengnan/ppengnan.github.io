@@ -71,7 +71,7 @@
       transform: scale(1.3);
     }
 
-    /* 新增：捏住 2 秒触发滚动时的 1cm 圆圈 */
+    /* 捏住一定时间触发滚动时的 1cm 圆圈 */
     #pinch-circle {
       position: fixed;
       width: 40px;   /* 约 1cm */
@@ -125,7 +125,7 @@
 <body>
   <iframe id="website-frame" src="https://ppengnan.github.io/"></iframe>
   <div id="cursor"></div>
-  <!-- 新增：用于显示 1cm 圆圈 -->
+  <!-- 用于显示 1cm 圆圈 -->
   <div id="pinch-circle"></div>
   
   <div id="video-container">
@@ -137,8 +137,8 @@
   <div id="info-panel">
     <div class="gesture-info"><strong>Gesture Control:</strong></div>
     <div class="gesture-info">✋ Spread your palm - Move the cursor</div>
-    <div class="gesture-info">🤏 Pinch ≥ 2s + drag – Scroll the page</div>
-    <div class="gesture-info">🤏 Pinch &lt; 2s – Click</div>
+    <div class="gesture-info">🤏 Pinch ≥ 1s + drag – Scroll the page</div>
+    <div class="gesture-info">🤏 Pinch &lt; 1s – Click</div>
     <div class="gesture-info" id="status">Status: Waiting for detection…</div>
   </div>
 
@@ -163,12 +163,12 @@
     
     let clickCooldown = false;
 
-    // 新增：2秒阈值 + 1cm 圆圈尺寸
+    // 1秒阈值 + 1cm 圆圈尺寸
     const PINCH_FRAMES_REQUIRED = 3;
     const PINCH_DISTANCE_THRESHOLD = 0.035;
-    const SCROLL_SPEED = 22;
-    const SCROLL_ACTIVATE_TIME = 2000; // ms，捏住 >= 2 秒进入滚动模式
-    const CIRCLE_DIAMETER_PX = 40;     // 约 1cm（屏幕上）
+    const SCROLL_SPEED = 10;             // 改小：让滑动更慢更稳
+    const SCROLL_ACTIVATE_TIME = 1000;   // ms，捏住 >= 1 秒进入滚动模式
+    const CIRCLE_DIAMETER_PX = 40;       // 约 1cm（屏幕上）
     const CIRCLE_RADIUS_PX = CIRCLE_DIAMETER_PX / 2;
 
     const pinchState = {
@@ -209,7 +209,7 @@
       );
     }
 
-    // 修改：增加捏合交点（拇指与食指中点）坐标
+    // 捏合交点（拇指与食指中点）坐标
     function recognizeGesture(landmarks) {
       const thumbTip  = landmarks[4];
       const indexTip  = landmarks[8];
@@ -268,13 +268,13 @@
         state.smoothY = y;
         state.startTime = performance.now();
         state.moved = false;
-        state.mode = 'pending';       // 还没到 2 秒，等待决定是点击还是滚动
+        state.mode = 'pending';       // 还没到 1 秒，等待决定是点击还是滚动
         state.circleActive = false;
         state.circleCenterX = null;
         state.circleCenterY = null;
         state.lastScrollY = null;
         pinchCircle.style.display = 'none';
-        statusElement.textContent = `Status: ${handedness} hand pinching - hold 2s for scroll or release for click`;
+        statusElement.textContent = `Status: ${handedness} hand pinching - hold 1s for scroll or release for click`;
       }
 
       // 处于捏合状态
@@ -282,7 +282,7 @@
         const now = performance.now();
         state.lastY = y;
 
-        // 平滑 Y（可选，用于滚动更稳）
+        // 平滑 Y（用于滚动更稳）
         if (state.smoothY === null) {
           state.smoothY = y;
         } else {
@@ -291,7 +291,7 @@
 
         const elapsed = now - state.startTime;
 
-        // 满 2 秒，进入滚动模式，显示圆圈
+        // 满 1 秒，进入滚动模式，显示圆圈
         if (elapsed >= SCROLL_ACTIVATE_TIME && state.mode === 'pending') {
           state.mode = 'scroll';
           state.circleActive = true;
@@ -305,7 +305,7 @@
           pinchCircle.style.width  = CIRCLE_DIAMETER_PX + 'px';
           pinchCircle.style.height = CIRCLE_DIAMETER_PX + 'px';
 
-          statusElement.textContent = `Status: ${handedness} hand scroll mode (pinch ≥ 2s)`;
+          statusElement.textContent = `Status: ${handedness} hand scroll mode (pinch ≥ 1s)`;
         }
 
         // 滚动模式：捏合交点相对圆圈中心移动超出 1cm 才滚动页面
@@ -355,7 +355,7 @@
       }
     }
 
-    // 修改：根据捏合持续时间判断点击（<2s）还是滚动结束（>=2s）
+    // 根据捏合持续时间判断点击（<1s）还是滚动结束（>=1s）
     function handlePinchEnd(handedness) {
       const state = pinchState[handedness];
       if (!state.isPinching) return;
@@ -364,9 +364,9 @@
       const duration = state.startTime ? (now - state.startTime) : 0;
 
       if (state.mode === 'pending' && duration < SCROLL_ACTIVATE_TIME) {
-        // 捏住不到 2 秒：视为点击
+        // 捏住不到 1 秒：视为点击
         triggerClickAtCursor();
-        statusElement.textContent = `Status: ${handedness} click (pinch < 2s)`;
+        statusElement.textContent = `Status: ${handedness} click (pinch < 1s)`;
       } else {
         // 已经进入滚动模式：只结束滚动，不触发点击
         statusElement.textContent = `Status: ${handedness} pinch ended`;
@@ -481,7 +481,7 @@
     });
     camera.start();
 
-    // 保留：如果检测到捏合结束（frameCount 归零），则调用 handlePinchEnd
+    // 如果检测到捏合结束（frameCount 归零），则调用 handlePinchEnd
     setInterval(() => {
       ['Left','Right'].forEach(h => {
         const s = pinchState[h];
