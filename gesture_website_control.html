@@ -70,6 +70,19 @@
     #cursor.clicking {
       transform: scale(1.3);
     }
+
+    /* 新增：捏住 2 秒触发滚动时的 1cm 圆圈 */
+    #pinch-circle {
+      position: fixed;
+      width: 40px;   /* 约 1cm */
+      height: 40px;  /* 约 1cm */
+      border-radius: 50%;
+      border: 2px solid rgba(0, 255, 0, 0.8);
+      pointer-events: none;
+      z-index: 998;
+      display: none;
+      box-sizing: border-box;
+    }
     
     #info-panel {
       position: fixed;
@@ -112,6 +125,8 @@
 <body>
   <iframe id="website-frame" src="https://ppengnan.github.io/"></iframe>
   <div id="cursor"></div>
+  <!-- 新增：用于显示 1cm 圆圈 -->
+  <div id="pinch-circle"></div>
   
   <div id="video-container">
     <a href="/" id="exit-btn">← Exit Gesture Mode</a>
@@ -122,8 +137,8 @@
   <div id="info-panel">
     <div class="gesture-info"><strong>Gesture Control:</strong></div>
     <div class="gesture-info">✋ Spread your palm - Move the cursor</div>
-    <div class="gesture-info">🤏 Pinch + drag – Scroll the page (like Vision Pro)</div>
-    <div class="gesture-info">🤏 Short pinch (quick) – Click</div>
+    <div class="gesture-info">🤏 Pinch ≥ 2s + drag – Scroll the page</div>
+    <div class="gesture-info">🤏 Pinch &lt; 2s – Click</div>
     <div class="gesture-info" id="status">Status: Waiting for detection…</div>
   </div>
 
@@ -136,6 +151,7 @@
     const canvasCtx = canvasElement.getContext('2d');
     const cursor = document.getElementById('cursor');
     const statusElement = document.getElementById('status');
+    const pinchCircle = document.getElementById('pinch-circle');
     
     function resizeCanvas() {
       const container = document.getElementById('video-container');
@@ -147,16 +163,44 @@
     
     let clickCooldown = false;
 
-    const pinchState = {
-      Left:  { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false, smoothY: null },
-      Right: { isPinching: false, frameCount: 0, lastY: null, startY: null, startTime: null, moved: false, smoothY: null }
-    };
-
+    // 新增：2秒阈值 + 1cm 圆圈尺寸
     const PINCH_FRAMES_REQUIRED = 3;
     const PINCH_DISTANCE_THRESHOLD = 0.035;
     const SCROLL_SPEED = 22;
-    const CLICK_MAX_DURATION = 300;
-    const CLICK_MAX_MOVE = 15;
+    const SCROLL_ACTIVATE_TIME = 2000; // ms，捏住 >= 2 秒进入滚动模式
+    const CIRCLE_DIAMETER_PX = 40;     // 约 1cm（屏幕上）
+    const CIRCLE_RADIUS_PX = CIRCLE_DIAMETER_PX / 2;
+
+    const pinchState = {
+      Left:  { 
+        isPinching: false, 
+        frameCount: 0, 
+        lastY: null, 
+        startY: null, 
+        startTime: null, 
+        moved: false, 
+        smoothY: null,
+        mode: 'idle',           // 'idle' | 'pending' | 'scroll'
+        circleActive: false,
+        circleCenterX: null,
+        circleCenterY: null,
+        lastScrollY: null
+      },
+      Right: { 
+        isPinching: false, 
+        frameCount: 0, 
+        lastY: null, 
+        startY: null, 
+        startTime: null, 
+        moved: false, 
+        smoothY: null,
+        mode: 'idle',
+        circleActive: false,
+        circleCenterX: null,
+        circleCenterY: null,
+        lastScrollY: null
+      }
+    };
 
     function getDistance(point1, point2) {
       return Math.sqrt(
@@ -165,6 +209,7 @@
       );
     }
 
+    // 修改：增加捏合交点（拇指与食指中点）坐标
     function recognizeGesture(landmarks) {
       const thumbTip  = landmarks[4];
       const indexTip  = landmarks[8];
@@ -179,34 +224,43 @@
       const pinchDistance = getDistance(thumbTip, indexTip);
       const indexStraight = (indexBase.y - indexTip.y) > 0.05;
       const allExtended = indexStraight && (middleTip.y < middleBase.y) && (ringTip.y < ringBase.y) && (pinkyTip.y < pinkyBase.y);
+
+      // 捏合交点（归一化坐标）
+      const pinchX = (thumbTip.x + indexTip.x) / 2;
+      const pinchY = (thumbTip.y + indexTip.y) / 2;
+
       return {
         pinchDistance,
         indexTip,
         indexStraight,
-        allExtended
+        allExtended,
+        pinchX,
+        pinchY
       };
     }
 
     function performGestureForHand(handedness, gestureData) {
       const state = pinchState[handedness];
-      const indexTip = gestureData.indexTip;
       const pinchDistance = gestureData.pinchDistance;
       const allExtended = gestureData.allExtended;
       const indexStraight = gestureData.indexStraight;
 
-      const x = (1 - indexTip.x) * window.innerWidth;
-      const y = indexTip.y * window.innerHeight;
+      // 使用捏合交点控制光标和圆圈位置
+      const x = (1 - gestureData.pinchX) * window.innerWidth;
+      const y = gestureData.pinchY * window.innerHeight;
 
       cursor.style.left = x + 'px';
       cursor.style.top = y + 'px';
       cursor.style.display = 'block';
 
+      // 检测是否在捏合（距离阈值+连续帧）
       if (pinchDistance < PINCH_DISTANCE_THRESHOLD) {
         state.frameCount++;
       } else {
         state.frameCount = 0;
       }
 
+      // 刚进入捏合状态（开始计时）
       if (!state.isPinching && state.frameCount >= PINCH_FRAMES_REQUIRED) {
         state.isPinching = true;
         state.startY = y;
@@ -214,57 +268,107 @@
         state.smoothY = y;
         state.startTime = performance.now();
         state.moved = false;
-        statusElement.textContent = `Status: ${handedness} hand pinching - start drag`;
+        state.mode = 'pending';       // 还没到 2 秒，等待决定是点击还是滚动
+        state.circleActive = false;
+        state.circleCenterX = null;
+        state.circleCenterY = null;
+        state.lastScrollY = null;
+        pinchCircle.style.display = 'none';
+        statusElement.textContent = `Status: ${handedness} hand pinching - hold 2s for scroll or release for click`;
       }
 
+      // 处于捏合状态
       if (state.isPinching) {
+        const now = performance.now();
+        state.lastY = y;
+
+        // 平滑 Y（可选，用于滚动更稳）
         if (state.smoothY === null) {
           state.smoothY = y;
         } else {
           state.smoothY = state.smoothY * 0.7 + y * 0.3;
         }
-        
-        const rawDelta = state.smoothY - state.lastY;
-        
-        if (Math.abs(rawDelta) >= 3) {
-          const frame = document.getElementById('website-frame');
-          if (frame && frame.contentWindow) {
-            const scrollDelta = rawDelta * SCROLL_SPEED;
-            try {
-              frame.contentWindow.scrollBy(0, scrollDelta);
-            } catch (e) {
+
+        const elapsed = now - state.startTime;
+
+        // 满 2 秒，进入滚动模式，显示圆圈
+        if (elapsed >= SCROLL_ACTIVATE_TIME && state.mode === 'pending') {
+          state.mode = 'scroll';
+          state.circleActive = true;
+          state.circleCenterX = x;
+          state.circleCenterY = y;
+          state.lastScrollY = y;
+
+          pinchCircle.style.display = 'block';
+          pinchCircle.style.left = (x - CIRCLE_RADIUS_PX) + 'px';
+          pinchCircle.style.top  = (y - CIRCLE_RADIUS_PX) + 'px';
+          pinchCircle.style.width  = CIRCLE_DIAMETER_PX + 'px';
+          pinchCircle.style.height = CIRCLE_DIAMETER_PX + 'px';
+
+          statusElement.textContent = `Status: ${handedness} hand scroll mode (pinch ≥ 2s)`;
+        }
+
+        // 滚动模式：捏合交点相对圆圈中心移动超出 1cm 才滚动页面
+        if (state.mode === 'scroll' && state.circleActive) {
+          const dyFromCircle = y - state.circleCenterY;
+
+          if (Math.abs(dyFromCircle) > CIRCLE_RADIUS_PX) {
+            const frame = document.getElementById('website-frame');
+            const scrollDelta = (state.smoothY - state.lastScrollY) * SCROLL_SPEED;
+
+            if (frame && frame.contentWindow) {
+              try {
+                frame.contentWindow.scrollBy(0, scrollDelta);
+              } catch (e) {
+                window.scrollBy(0, scrollDelta);
+              }
+            } else {
               window.scrollBy(0, scrollDelta);
             }
+
+            state.moved = true;
+            state.lastScrollY = state.smoothY;
+
+            // 圆圈跟随捏合点移动（每次滚动后更新圆心，形成“死区”）
+            state.circleCenterX = x;
+            state.circleCenterY = y;
+            pinchCircle.style.left = (state.circleCenterX - CIRCLE_RADIUS_PX) + 'px';
+            pinchCircle.style.top  = (state.circleCenterY - CIRCLE_RADIUS_PX) + 'px';
+
+            statusElement.textContent = `Status: ${handedness} scrolling`;
           } else {
-            window.scrollBy(0, rawDelta * SCROLL_SPEED);
+            statusElement.textContent = `Status: ${handedness} pinch inside circle (no scroll)`;
           }
-          state.moved = true;
-          state.lastY = state.smoothY;
         }
       }
 
+      // 没有处于捏合中时的状态提示
       if (!state.isPinching) {
         if (allExtended) {
           statusElement.textContent = 'Status: Move the cursor (palm)';
           cursor.className = '';
         } else if (indexStraight) {
-          statusElement.textContent = 'Status: Index up (no scroll - now use pinch drag)';
+          statusElement.textContent = 'Status: Index up (no scroll - now use pinch)';
         } else {
           statusElement.textContent = 'Status: Waiting for gesture…';
         }
       }
     }
 
+    // 修改：根据捏合持续时间判断点击（<2s）还是滚动结束（>=2s）
     function handlePinchEnd(handedness) {
       const state = pinchState[handedness];
       if (!state.isPinching) return;
-      const duration = performance.now() - state.startTime;
-      const totalMove = Math.abs(state.lastY - state.startY || 0);
 
-      if (duration < CLICK_MAX_DURATION && !state.moved) {
+      const now = performance.now();
+      const duration = state.startTime ? (now - state.startTime) : 0;
+
+      if (state.mode === 'pending' && duration < SCROLL_ACTIVATE_TIME) {
+        // 捏住不到 2 秒：视为点击
         triggerClickAtCursor();
-        statusElement.textContent = `Status: ${handedness} click`;
+        statusElement.textContent = `Status: ${handedness} click (pinch < 2s)`;
       } else {
+        // 已经进入滚动模式：只结束滚动，不触发点击
         statusElement.textContent = `Status: ${handedness} pinch ended`;
       }
 
@@ -275,6 +379,13 @@
       state.smoothY = null;
       state.startTime = null;
       state.moved = false;
+      state.mode = 'idle';
+      state.circleActive = false;
+      state.circleCenterX = null;
+      state.circleCenterY = null;
+      state.lastScrollY = null;
+
+      pinchCircle.style.display = 'none';
     }
 
     function triggerClickAtCursor() {
@@ -347,11 +458,13 @@
         for (let i = 0; i < results.multiHandLandmarks.length; i++) {
           const landmarks = results.multiHandLandmarks[i];
           const rawHandedness = (results.multiHandedness && results.multiHandedness[i] && results.multiHandedness[i].label) || 'Right';
+          // 镜像后左右会反，所以这里做了转换
           const handedness = rawHandedness === 'Left' ? 'Right' : 'Left';
           const g = recognizeGesture(landmarks);
           performGestureForHand(handedness, g);
         }
       } else {
+        // 没有检测到手时，结束两只手的捏合状态
         handlePinchEnd('Left');
         handlePinchEnd('Right');
         cursor.style.display = 'none';
@@ -368,6 +481,7 @@
     });
     camera.start();
 
+    // 保留：如果检测到捏合结束（frameCount 归零），则调用 handlePinchEnd
     setInterval(() => {
       ['Left','Right'].forEach(h => {
         const s = pinchState[h];
