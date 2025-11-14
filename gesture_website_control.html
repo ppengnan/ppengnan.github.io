@@ -379,7 +379,9 @@
         // 对每只手分别识别并执行：使用 results.multiHandedness 对应标签
         for (let i = 0; i < results.multiHandLandmarks.length; i++) {
           const landmarks = results.multiHandLandmarks[i];
-          const handedness = (results.multiHandedness && results.multiHandedness[i] && results.multiHandedness[i].label) || 'Right';
+          const rawHandedness = (results.multiHandedness && results.multiHandedness[i] && results.multiHandedness[i].label) || 'Right';
+          // 因为视频镜像翻转，需要反转左右手标签
+          const handedness = rawHandedness === 'Left' ? 'Right' : 'Left';
           const g = recognizeGesture(landmarks);
           performGestureForHand(handedness, g);
         }
