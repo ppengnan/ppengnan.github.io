@@ -370,7 +370,7 @@
       if (state.mode === 'pending' && duration < SCROLL_ACTIVATE_TIME) {
         // 捏住不到 1 秒：视为点击
         triggerClickAtCursor();
-        statusElement.textContent = `Status: ${handedness} click (pinch < 1s)`;
+        statusElement.textContent = `Status: ${handedness} click (pinch < 0.5s)`;
       } else {
         // 已经进入滚动模式：只结束滚动，不触发点击
         statusElement.textContent = `Status: ${handedness} pinch ended`;
