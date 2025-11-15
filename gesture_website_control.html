@@ -278,7 +278,7 @@
         state.circleCenterY = null;
         state.lastScrollY = null;
         pinchCircle.style.display = 'none';
-        statusElement.textContent = `Status: ${handedness} hand pinching - hold 1s for scroll or release for click`;
+        statusElement.textContent = `Status: ${handedness} hand pinching`;
       }
 
       // 处于捏合状态
@@ -309,7 +309,7 @@
           pinchCircle.style.width  = CIRCLE_DIAMETER_PX + 'px';
           pinchCircle.style.height = CIRCLE_DIAMETER_PX + 'px';
 
-          statusElement.textContent = `Status: ${handedness} hand scroll mode (pinch ≥ 1s)`;
+          statusElement.textContent = `Status: ${handedness} hand scroll mode`;
         }
 
         // 滚动模式：捏合交点相对圆圈中心移动超出 1cm 才滚动页面
