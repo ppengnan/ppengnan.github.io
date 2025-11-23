@@ -98,6 +98,7 @@
       height: 150px;
       background: #000;
       display: block;
+      transform: scaleX(-1); /* Mirror the video horizontally */
     }
 
     .webcam-controls {
@@ -172,14 +173,12 @@
 
     .scroll-circle-up {
       top: 80px;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 30px; /* Move to left side */
     }
 
     .scroll-circle-down {
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
+      bottom: 80px; /* Adjusted to avoid status bar */
+      left: 30px; /* Move to left side */
     }
 
     .scroll-circle-progress {
@@ -410,7 +409,7 @@
     .blink-indicator {
       position: fixed;
       top: 80px;
-      left: 20px;
+      left: 30px;
       width: 40px;
       height: 40px;
       background: white;
@@ -603,10 +602,10 @@
   <div class="eye-cursor" id="eyeCursor"></div>
 
   <!-- Blink Indicator -->
-  <div class="blink-indicator" id="blinkIndicator">👁️</div>
+  <div class="blink-indicator" id="blinkIndicator" style="top: 150px;">👁️</div>
 
   <!-- Scroll Circles -->
-  <div class="scroll-circle scroll-circle-up" id="scrollUp">
+  <div class="scroll-circle scroll-circle-up" id="scrollUp" style="top: 200px;">
     <div class="scroll-circle-progress"></div>
     <span>↑</span>
   </div>
@@ -688,12 +687,15 @@
     // Global State
     let isCalibrated = false;
     let gazeData = { x: 0, y: 0 };
+    let lastValidGaze = { x: 0, y: 0 }; // Store last valid gaze position
     let blinkCount = 0;
     let lastBlinkTime = 0;
     let hoveredElement = null;
     let scrolling = false;
     let scrollDirection = null;
     let gazeStartTime = { up: 0, down: 0 };
+    let isBlinking = false; // Flag to indicate if eyes are closed
+    let blinkStartTime = 0;
     let settings = {
       sensitivity: 50,
       blinkSensitivity: 60,
@@ -731,19 +733,40 @@
     function initWebGazer() {
       webgazer.setGazeListener((data, timestamp) => {
         if (data && isCalibrated) {
-          gazeData = { x: data.x, y: data.y };
-          updateEyeCursor(data.x, data.y);
-          checkHoveredElement(data.x, data.y);
-          checkScrollCircles(data.x, data.y);
+          // Calculate Eye Aspect Ratio (EAR) to detect blinks
+          const eyesClosed = detectEyesClosed();
+          
+          if (eyesClosed) {
+            // Eyes are closed - freeze cursor and mark as blinking
+            if (!isBlinking) {
+              isBlinking = true;
+              blinkStartTime = Date.now();
+              handleRealBlink(); // Trigger blink handling
+            }
+            // Don't update cursor position when eyes are closed
+            return;
+          } else {
+            // Eyes are open - check if we just finished blinking
+            if (isBlinking) {
+              isBlinking = false;
+              const blinkDuration = Date.now() - blinkStartTime;
+              console.log('Blink duration:', blinkDuration, 'ms');
+            }
+            
+            // Update gaze data only when eyes are open
+            gazeData = { x: data.x, y: data.y };
+            lastValidGaze = { x: data.x, y: data.y };
+            
+            updateEyeCursor(data.x, data.y);
+            checkHoveredElement(data.x, data.y);
+            checkScrollCircles(data.x, data.y);
+          }
         }
       }).begin();
 
       webgazer.showVideoPreview(false);
       webgazer.showPredictionPoints(false);
       webgazer.applyKalmanFilter(true); // Smooth predictions
-      
-      // Detect blinks (simplified - in production use proper blink detection)
-      setInterval(detectBlink, 100);
     }
 
     // Setup Calibration Points
@@ -808,9 +831,13 @@
     function updateEyeCursor(x, y) {
       if (!settings.showCursor) return;
       
-      const cursor = document.getElementById('eyeCursor');
-      cursor.style.left = x + 'px';
-      cursor.style.top = y + 'px';
+      // Only update if not blinking
+      if (!isBlinking) {
+        const cursor = document.getElementById('eyeCursor');
+        cursor.style.left = x + 'px';
+        cursor.style.top = y + 'px';
+      }
+      // If blinking, cursor stays at last valid position
     }
 
     // Check Hovered Element
@@ -833,33 +860,108 @@
       }
     }
 
-    // Detect Blink (Simplified)
-    function detectBlink() {
-      // This is a simplified simulation for demo purposes
-      // Real implementation would use WebGazer's eye aspect ratio analysis
-      // or integrate with libraries like clmtrackr for proper blink detection
-      
-      // Simulate random blink detection (replace with real implementation)
-      const randomBlink = Math.random() < 0.015; // 1.5% chance per check
-      
-      if (randomBlink && hoveredElement && isCalibrated) {
-        handleBlink();
+    // Detect if eyes are closed using Eye Aspect Ratio (EAR)
+    function detectEyesClosed() {
+      try {
+        // Get the current tracker data from WebGazer
+        const tracker = webgazer.getTracker();
+        if (!tracker || !tracker.currentFaceModel) {
+          return false;
+        }
+        
+        // Access face landmarks from clmtrackr (WebGazer's face tracker)
+        const positions = tracker.currentFaceModel;
+        if (!positions || positions.length < 56) {
+          return false; // Not enough facial landmarks detected
+        }
+        
+        // Calculate EAR for both eyes
+        const leftEAR = calculateEAR(positions, 'left');
+        const rightEAR = calculateEAR(positions, 'right');
+        
+        // Average EAR of both eyes
+        const avgEAR = (leftEAR + rightEAR) / 2;
+        
+        // Adjust threshold based on sensitivity setting
+        // Higher sensitivity = easier to trigger (higher threshold)
+        const baseThreshold = 0.20;
+        const sensitivityFactor = settings.blinkSensitivity / 100;
+        const earThreshold = baseThreshold + (sensitivityFactor - 0.5) * 0.1;
+        
+        // Eyes are considered closed if EAR is below threshold
+        return avgEAR < earThreshold;
+      } catch (error) {
+        // If we can't detect EAR, assume eyes are open
+        console.warn('EAR detection error:', error);
+        return false;
       }
     }
-
-    // Handle Blink
-    function handleBlink() {
+    
+    // Calculate Eye Aspect Ratio (EAR) for one eye
+    function calculateEAR(positions, eye) {
+      // clmtrackr landmark indices for eyes:
+      // Left eye: 23, 63, 24, 64, 25, 65 (top/bottom pairs)
+      // Right eye: 28, 68, 29, 69, 30, 70
+      
+      let p1, p2, p3, p4, p5, p6;
+      
+      if (eye === 'left') {
+        // Left eye landmarks
+        p1 = positions[23]; // Left corner
+        p2 = positions[63]; // Top-left
+        p3 = positions[24]; // Top-center  
+        p4 = positions[64]; // Top-right
+        p5 = positions[25]; // Right corner
+        p6 = positions[65]; // Bottom
+      } else {
+        // Right eye landmarks
+        p1 = positions[28];
+        p2 = positions[68];
+        p3 = positions[29];
+        p4 = positions[69];
+        p5 = positions[30];
+        p6 = positions[70];
+      }
+      
+      // Calculate vertical distances
+      const vertical1 = euclideanDistance(p2, p6);
+      const vertical2 = euclideanDistance(p3, p6);
+      const vertical3 = euclideanDistance(p4, p6);
+      
+      // Calculate horizontal distance (eye width)
+      const horizontal = euclideanDistance(p1, p5);
+      
+      // EAR formula: (v1 + v2 + v3) / (3 * h)
+      // Higher value = eye more open, lower value = eye more closed
+      if (horizontal === 0) return 0.25; // Prevent division by zero
+      
+      const ear = (vertical1 + vertical2 + vertical3) / (3 * horizontal);
+      return ear;
+    }
+    
+    // Calculate Euclidean distance between two points
+    function euclideanDistance(point1, point2) {
+      if (!point1 || !point2) return 0;
+      const dx = point1[0] - point2[0];
+      const dy = point1[1] - point2[1];
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    
+    // Handle real blink detection (replaces the old random detection)
+    function handleRealBlink() {
       const now = Date.now();
       const indicator = document.getElementById('blinkIndicator');
       
+      // Visual feedback
       indicator.classList.add('blinking');
       setTimeout(() => indicator.classList.remove('blinking'), 200);
       
+      // Check if this is the second blink within 1 second
       if (now - lastBlinkTime < 1000) {
-        // Second blink within 1 second
         blinkCount++;
         
         if (blinkCount >= 2 && hoveredElement) {
+          // Double blink detected - trigger click!
           triggerClick(hoveredElement);
           blinkCount = 0;
         }
