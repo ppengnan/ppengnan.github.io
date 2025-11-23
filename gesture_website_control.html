@@ -708,8 +708,27 @@
     // Initialize on load
     window.addEventListener('load', () => {
       loadSettings();
-      document.getElementById('welcomeModal').classList.remove('hidden');
+      startEyeTrackingWithoutCalibration();
     });
+
+  function startEyeTrackingWithoutCalibration() {
+    isCalibrated = true; // 直接当作已校准
+  
+    // 隐藏欢迎界面和校准界面
+    document.getElementById('welcomeModal')?.classList.add('hidden');
+    document.getElementById('calibrationScreen')?.classList.remove('active');
+  
+    // 启动摄像头
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        document.getElementById('webcamVideo').srcObject = stream;
+        initWebGazer(); // 直接启动眼动追踪
+        document.getElementById('eyeCursor').classList.add('active');
+      })
+      .catch(err => {
+        showMessage('❌ Camera access denied.');
+      });
+  }
 
     // Start Calibration
     function startCalibration() {
