@@ -1,539 +1,1169 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>👋 Gesture Control Mode (Pinch Drag Scroll)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eye Control Mode - Nan Peng</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      margin: 0; 
-      overflow: hidden; 
-      font-family: Arial, sans-serif;
-    }
-    
-    #video-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 320px;
-      height: 240px;
-      border: 3px solid #00ff00;
-      border-radius: 10px;
-      overflow: hidden;
-      z-index: 1000;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
-    
-    #input_video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      transform: scaleX(-1);
-    }
-    
-    #output_canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      transform: scaleX(-1);
-    }
-    
-    #website-frame {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    
-    #cursor {
-      position: fixed;
-      width: 40px;
-      height: 40px;
-      background-image: url('./arrow.png');
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: center;
-      pointer-events: none;
-      z-index: 999;
-      display: none;
-      transition: transform 0.1s;
-      transform-origin: top left;
-    }
-
-    #cursor.clicking {
-      transform: scale(1.3);
-    }
-
-    /* 捏住一定时间触发滚动时的 1cm 圆圈 */
-    #pinch-circle {
-      position: fixed;
-      width: 40px;   /* 约 1cm */
-      height: 40px;  /* 约 1cm */
-      border-radius: 50%;
-      border: 2px solid rgba(0, 255, 0, 0.8);
-      pointer-events: none;
-      z-index: 998;
-      display: none;
+    * {
+      margin: 0;
+      padding: 0;
       box-sizing: border-box;
     }
-    
-    #info-panel {
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+      background: #f9f9f9;
+    }
+
+    /* Top Control Bar */
+    .control-bar {
       position: fixed;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 15px 20px;
-      border-radius: 10px;
-      z-index: 1000;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 10000;
+    }
+
+    .control-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .control-bar-right {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
       font-size: 14px;
-      max-width: 300px;
+      transition: all 0.2s;
     }
-    
-    .gesture-info {
-      margin: 5px 0;
+
+    .btn:hover {
+      background: #f5f5f5;
+      border-color: #999;
     }
-    
-    .gesture-info strong {
-      color: #00ff00;
+
+    .btn-primary {
+      background: #477dfc;
+      color: white;
+      border-color: #477dfc;
     }
-    
-    #exit-btn {
+
+    .btn-primary:hover {
+      background: #3a6ad9;
+    }
+
+    /* Webcam Preview */
+    .webcam-preview {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      width: 200px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 9999;
+      overflow: hidden;
+    }
+
+    .webcam-header {
+      background: #333;
+      color: white;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: move;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .webcam-video {
+      width: 100%;
+      height: 150px;
+      background: #000;
+      display: block;
+    }
+
+    .webcam-controls {
+      padding: 8px;
+      display: flex;
+      gap: 6px;
+      justify-content: space-between;
+    }
+
+    .webcam-controls button {
+      padding: 4px 8px;
+      font-size: 11px;
+      flex: 1;
+    }
+
+    /* Eye Cursor */
+    .eye-cursor {
+      position: fixed;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,191,255,0.8) 0%, rgba(0,191,255,0.3) 70%, transparent 100%);
+      border: 1px solid white;
+      pointer-events: none;
+      z-index: 9998;
+      transition: transform 0.05s ease-out;
+      display: none;
+    }
+
+    .eye-cursor.active {
+      display: block;
+    }
+
+    .eye-cursor.clicking {
+      background: radial-gradient(circle, rgba(255,215,0,0.9) 0%, rgba(255,215,0,0.4) 70%, transparent 100%);
+      transform: scale(1.2);
+    }
+
+    .eye-cursor.pointer {
+      background: radial-gradient(circle, rgba(0,255,127,0.8) 0%, rgba(0,255,127,0.3) 70%, transparent 100%);
+    }
+
+    /* Scroll Circles */
+    .scroll-circle {
+      position: fixed;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      border: 2px dashed #99ccff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      z-index: 9997;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .scroll-circle:hover {
+      transform: scale(1.1);
+      border-style: solid;
+      border-color: #477dfc;
+    }
+
+    .scroll-circle.active {
+      background: rgba(0,255,127,0.9);
+      border-color: #00ff7f;
+      transform: scale(1.15);
+    }
+
+    .scroll-circle-up {
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .scroll-circle-down {
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .scroll-circle-progress {
       position: absolute;
-      top: 8px;
-      right: 8px;
-      z-index: 1101;
-      padding: 6px 10px;
-      background: rgba(0, 0, 0, 0.75);
-      color: #fff;
-      border-radius: 999px;
-      text-decoration: none;
-      font-size: 12px;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      transition: background 0.2s ease, transform 0.1s ease;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(#477dfc 0deg, transparent 0deg);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .scroll-circle.gazing .scroll-circle-progress {
+      opacity: 0.7;
+    }
+
+    /* Content Area */
+    .content-wrapper {
+      margin-top: 60px;
+      padding: 20px;
+      max-width: 880px;
+      margin-left: auto;
+      margin-right: auto;
+      background: white;
+      min-height: calc(100vh - 60px);
+      font-size: calc(16px * 1.15);
+      line-height: 1.85;
+    }
+
+    /* Clickable Elements Highlight */
+    a, button {
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    a.eye-hovering, button.eye-hovering {
+      box-shadow: 0 0 0 4px rgba(70,130,255,0.4);
+      border-radius: 4px;
+      background-color: rgba(70,130,255,0.05);
+    }
+
+    a.eye-blink-once, button.eye-blink-once {
+      box-shadow: 0 0 0 4px rgba(255,215,0,0.6);
+      background-color: rgba(255,215,0,0.1);
+    }
+
+    a.eye-clicking, button.eye-clicking {
+      box-shadow: 0 0 0 4px rgba(0,255,127,0.8);
+      background-color: rgba(0,255,127,0.2);
+      animation: clickFlash 0.3s;
+    }
+
+    @keyframes clickFlash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; transform: scale(1.02); }
+    }
+
+    /* Status Bar */
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #333;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      font-size: 13px;
+      gap: 20px;
+      z-index: 9996;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4caf50;
+    }
+
+    .status-indicator.error {
+      background: #f44336;
+    }
+
+    .status-indicator.warning {
+      background: #ff9800;
+    }
+
+    /* Welcome Modal */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .modal-content h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .modal-content p {
+      margin-bottom: 15px;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .modal-content ul {
+      margin: 15px 0;
+      padding-left: 25px;
+      color: #666;
+    }
+
+    .modal-content ul li {
+      margin-bottom: 8px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+    }
+
+    /* Calibration Screen */
+    .calibration-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      z-index: 10002;
+      display: none;
+    }
+
+    .calibration-screen.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .calibration-instruction {
+      font-size: 20px;
+      margin-bottom: 30px;
+      color: #333;
+      text-align: center;
+    }
+
+    .calibration-grid {
+      position: relative;
+      width: 80vw;
+      height: 60vh;
+      max-width: 1000px;
+    }
+
+    .calibration-point {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #477dfc;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 0 0 0 rgba(71,125,252,0.5);
+    }
+
+    .calibration-point.active {
+      width: 30px;
+      height: 30px;
+      background: #ff6b6b;
+      animation: pulse 1s infinite;
+    }
+
+    .calibration-point.completed {
+      background: #4caf50;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255,107,107,0.7);
+      }
+      50% {
+        box-shadow: 0 0 0 15px rgba(255,107,107,0);
+      }
+    }
+
+    .calibration-progress {
+      margin-top: 30px;
+      font-size: 18px;
+      color: #666;
+    }
+
+    /* Blink Indicator */
+    .blink-indicator {
+      position: fixed;
+      top: 80px;
+      left: 20px;
+      width: 40px;
+      height: 40px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 9999;
+      transition: all 0.2s;
+    }
+
+    .blink-indicator.blinking {
+      background: #ffd700;
+      transform: scale(1.2);
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: fixed;
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      pointer-events: none;
+      z-index: 10003;
+      white-space: nowrap;
+      display: none;
+    }
+
+    .tooltip.visible {
+      display: block;
+    }
+
+    /* Settings Panel */
+    .settings-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 10001;
+      display: none;
+    }
+
+    .settings-panel.active {
+      display: block;
+    }
+
+    .settings-panel h3 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .setting-item {
+      margin-bottom: 20px;
+    }
+
+    .setting-item label {
+      display: block;
+      margin-bottom: 8px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .setting-item input[type="range"] {
+      width: 100%;
+    }
+
+    .setting-item input[type="checkbox"] {
+      margin-right: 8px;
+    }
+
+    /* Message Toast */
+    .message-toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      z-index: 10004;
+      display: none;
+      text-align: center;
+    }
+
+    .message-toast.visible {
+      display: block;
+      animation: fadeInOut 2s;
+    }
+
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0; }
+      10%, 90% { opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .webcam-preview {
+        width: 150px;
+        top: 70px;
+        right: 10px;
+      }
+      
+      .webcam-video {
+        height: 110px;
+      }
+
+      .control-bar {
+        flex-direction: column;
+        height: auto;
+        padding: 10px;
+      }
+
+      .content-wrapper {
+        margin-top: 100px;
+      }
     }
   </style>
 </head>
 <body>
-  <iframe id="website-frame" src="https://ppengnan.github.io/"></iframe>
-  <div id="cursor"></div>
-  <!-- 用于显示 1cm 圆圈 -->
-  <div id="pinch-circle"></div>
-  
-  <div id="video-container">
-    <a href="/" id="exit-btn">← Exit Gesture Mode</a>
-    <video id="input_video" autoplay playsinline muted></video>
-    <canvas id="output_canvas"></canvas>
-  </div>
-  
-  <div id="info-panel">
-    <div class="gesture-info"><strong>Gesture Control:</strong></div>
-    <div class="gesture-info">✋ Spread your palm - Move the cursor</div>
-    <div class="gesture-info">🤏 Pinch ≥ 0.5s + drag – Scroll the page</div>
-    <div class="gesture-info">🤏 Pinch &lt; 0.5s – Click</div>
-    <div class="gesture-info" id="status">Status: Waiting for detection…</div>
+  <!-- Welcome Modal -->
+  <div class="modal" id="welcomeModal">
+    <div class="modal-content">
+      <h2>🎯 Welcome to Eye Control Mode</h2>
+      <p>Experience cutting-edge eye tracking technology to browse the web!</p>
+      <p><strong>You will need:</strong></p>
+      <ul>
+        <li>A webcam (built-in camera works fine)</li>
+        <li>Good lighting environment</li>
+        <li>Keep your head relatively stable</li>
+      </ul>
+      <p><strong>How it works:</strong></p>
+      <ul>
+        <li>Blink twice within 1 second on a link to click it</li>
+        <li>Gaze at top/bottom circles for 0.8s to scroll</li>
+        <li>Font size is automatically set to A+ for better visibility</li>
+      </ul>
+      <div class="modal-buttons">
+        <button class="btn" onclick="window.location.href='index.html'">Cancel</button>
+        <button class="btn btn-primary" onclick="startCalibration()">Start Calibration</button>
+      </div>
+    </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <!-- Calibration Screen -->
+  <div class="calibration-screen" id="calibrationScreen">
+    <div class="calibration-instruction">Please gaze at each point for 2 seconds</div>
+    <div class="calibration-grid" id="calibrationGrid"></div>
+    <div class="calibration-progress" id="calibrationProgress">Progress: 0/9 completed</div>
+  </div>
+
+  <!-- Top Control Bar -->
+  <div class="control-bar">
+    <div class="control-bar-left">
+      <button class="btn" onclick="window.location.href='index.html'">← Back to Home</button>
+      <span style="font-weight: 600; color: #333;">Eye Control Mode</span>
+    </div>
+    <div class="control-bar-right">
+      <button class="btn" onclick="recalibrate()">🔄 Recalibrate</button>
+      <button class="btn" onclick="toggleSettings()">⚙️ Settings</button>
+      <button class="btn" onclick="window.location.href='index.html'">✕ Exit</button>
+    </div>
+  </div>
+
+  <!-- Webcam Preview -->
+  <div class="webcam-preview" id="webcamPreview">
+    <div class="webcam-header">
+      <span>📹 Webcam</span>
+      <button style="background:none;border:none;color:white;cursor:pointer;" onclick="toggleWebcam()">−</button>
+    </div>
+    <video class="webcam-video" id="webcamVideo" autoplay playsinline></video>
+    <canvas style="display:none;" id="faceCanvas"></canvas>
+    <div class="webcam-controls">
+      <button class="btn" onclick="toggleWebcam()">Minimize</button>
+    </div>
+  </div>
+
+  <!-- Eye Cursor -->
+  <div class="eye-cursor" id="eyeCursor"></div>
+
+  <!-- Blink Indicator -->
+  <div class="blink-indicator" id="blinkIndicator">👁️</div>
+
+  <!-- Scroll Circles -->
+  <div class="scroll-circle scroll-circle-up" id="scrollUp">
+    <div class="scroll-circle-progress"></div>
+    <span>↑</span>
+  </div>
+  <div class="scroll-circle scroll-circle-down" id="scrollDown">
+    <div class="scroll-circle-progress"></div>
+    <span>↓</span>
+  </div>
+
+  <!-- Content Wrapper -->
+  <div class="content-wrapper" id="contentWrapper">
+    <iframe id="contentFrame" src="index.html" style="width:100%;height:2000px;border:none;"></iframe>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-indicator" id="trackingIndicator"></span>
+      <span>Tracking: <span id="trackingStatus">Normal</span></span>
+    </div>
+    <div class="status-item">
+      <span class="status-indicator" id="cameraIndicator"></span>
+      <span>Camera: <span id="cameraStatus">Active</span></span>
+    </div>
+    <div class="status-item">
+      <span>⚡ <span id="fpsDisplay">30</span> FPS</span>
+    </div>
+    <div class="status-item">
+      <span>💾 Calibrated</span>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel" id="settingsPanel">
+    <h3>⚙️ Eye Control Settings</h3>
+    
+    <div class="setting-item">
+      <label>Gaze Sensitivity: <span id="sensitivityValue">50</span>%</label>
+      <input type="range" min="0" max="100" value="50" id="sensitivitySlider">
+    </div>
+
+    <div class="setting-item">
+      <label>Blink Sensitivity: <span id="blinkSensitivityValue">60</span>%</label>
+      <input type="range" min="0" max="100" value="60" id="blinkSlider">
+    </div>
+
+    <div class="setting-item">
+      <label>Scroll Circle Size: <span id="circleSizeValue">60</span>px</label>
+      <input type="range" min="40" max="100" value="60" id="circleSizeSlider">
+    </div>
+
+    <div class="setting-item">
+      <label><input type="checkbox" id="showWebcam" checked> Show Webcam Preview</label>
+    </div>
+
+    <div class="setting-item">
+      <label><input type="checkbox" id="showCursor" checked> Show Eye Cursor</label>
+    </div>
+
+    <div class="setting-item">
+      <label><input type="checkbox" id="showCircles" checked> Show Scroll Circles</label>
+    </div>
+
+    <div class="modal-buttons">
+      <button class="btn" onclick="resetSettings()">Reset Defaults</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="tooltip" id="tooltip"></div>
+
+  <!-- Message Toast -->
+  <div class="message-toast" id="messageToast"></div>
+
+  <!-- WebGazer.js -->
+  <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+
   <script>
-    const videoElement = document.getElementById('input_video');
-    const canvasElement = document.getElementById('output_canvas');
-    const canvasCtx = canvasElement.getContext('2d');
-    const cursor = document.getElementById('cursor');
-    const statusElement = document.getElementById('status');
-    const pinchCircle = document.getElementById('pinch-circle');
-    
-    function resizeCanvas() {
-      const container = document.getElementById('video-container');
-      canvasElement.width = container.clientWidth;
-      canvasElement.height = container.clientHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    
-    let clickCooldown = false;
-
-    // 1秒阈值 + 1cm 圆圈尺寸
-    const PINCH_FRAMES_REQUIRED = 3;
-    const PINCH_DISTANCE_THRESHOLD = 0.045;
-    const SCROLL_SPEED = 6;             // 改小：让滑动更慢更稳
-    const SCROLL_ACTIVATE_TIME = 500;   // ms，捏住 >= 1 秒进入滚动模式
-    const CIRCLE_DIAMETER_PX = 40;      // 约 1cm（屏幕上）
-    const CIRCLE_RADIUS_PX = CIRCLE_DIAMETER_PX / 2;
-
-    // 点击容错区域（策略5）
-    const CLICK_SEARCH_RADIUS = 25;     // 光标附近搜索半径，像素
-    const CLICK_SEARCH_STEP = 5;        // 搜索步长，像素
-
-    const pinchState = {
-      Left:  { 
-        isPinching: false, 
-        frameCount: 0, 
-        lastY: null, 
-        startY: null, 
-        startTime: null, 
-        moved: false, 
-        smoothY: null,
-        mode: 'idle',           // 'idle' | 'pending' | 'scroll'
-        circleActive: false,
-        circleCenterX: null,
-        circleCenterY: null,
-        lastScrollY: null
-      },
-      Right: { 
-        isPinching: false, 
-        frameCount: 0, 
-        lastY: null, 
-        startY: null, 
-        startTime: null, 
-        moved: false, 
-        smoothY: null,
-        mode: 'idle',
-        circleActive: false,
-        circleCenterX: null,
-        circleCenterY: null,
-        lastScrollY: null
-      }
+    // Global State
+    let isCalibrated = false;
+    let gazeData = { x: 0, y: 0 };
+    let blinkCount = 0;
+    let lastBlinkTime = 0;
+    let hoveredElement = null;
+    let scrolling = false;
+    let scrollDirection = null;
+    let gazeStartTime = { up: 0, down: 0 };
+    let settings = {
+      sensitivity: 50,
+      blinkSensitivity: 60,
+      circleSize: 60,
+      showWebcam: true,
+      showCursor: true,
+      showCircles: true
     };
 
-    function getDistance(point1, point2) {
-      return Math.sqrt(
-        Math.pow(point1.x - point2.x, 2) + 
-        Math.pow(point1.y - point2.y, 2)
-      );
+    // Initialize on load
+    window.addEventListener('load', () => {
+      loadSettings();
+      document.getElementById('welcomeModal').classList.remove('hidden');
+    });
+
+    // Start Calibration
+    function startCalibration() {
+      document.getElementById('welcomeModal').classList.add('hidden');
+      document.getElementById('calibrationScreen').classList.add('active');
+      
+      // Request webcam permission
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          document.getElementById('webcamVideo').srcObject = stream;
+          initWebGazer();
+          setupCalibrationPoints();
+        })
+        .catch(err => {
+          showMessage('❌ Camera access denied. Please allow camera permissions.');
+          setTimeout(() => window.location.href = 'index.html', 3000);
+        });
     }
 
-    // 捏合交点（拇指与食指中点）坐标
-    function recognizeGesture(landmarks) {
-      const thumbTip  = landmarks[4];
-      const indexTip  = landmarks[8];
-      const indexBase = landmarks[5];
-      const middleTip = landmarks[12];
-      const ringTip   = landmarks[16];
-      const pinkyTip  = landmarks[20];
-      const middleBase = landmarks[9];
-      const ringBase   = landmarks[13];
-      const pinkyBase  = landmarks[17];
+    // Initialize WebGazer
+    function initWebGazer() {
+      webgazer.setGazeListener((data, timestamp) => {
+        if (data && isCalibrated) {
+          gazeData = { x: data.x, y: data.y };
+          updateEyeCursor(data.x, data.y);
+          checkHoveredElement(data.x, data.y);
+          checkScrollCircles(data.x, data.y);
+        }
+      }).begin();
 
-      const pinchDistance = getDistance(thumbTip, indexTip);
-      const indexStraight = (indexBase.y - indexTip.y) > 0.05;
-      const allExtended = indexStraight && (middleTip.y < middleBase.y) && (ringTip.y < ringBase.y) && (pinkyTip.y < pinkyBase.y);
-
-      // 捏合交点（归一化坐标）
-      const pinchX = (thumbTip.x + indexTip.x) / 2;
-      const pinchY = (thumbTip.y + indexTip.y) / 2;
-
-      return {
-        pinchDistance,
-        indexTip,
-        indexStraight,
-        allExtended,
-        pinchX,
-        pinchY
-      };
+      webgazer.showVideoPreview(false);
+      webgazer.showPredictionPoints(false);
+      webgazer.applyKalmanFilter(true); // Smooth predictions
+      
+      // Detect blinks (simplified - in production use proper blink detection)
+      setInterval(detectBlink, 100);
     }
 
-    function performGestureForHand(handedness, gestureData) {
-      const state = pinchState[handedness];
-      const pinchDistance = gestureData.pinchDistance;
-      const allExtended = gestureData.allExtended;
-      const indexStraight = gestureData.indexStraight;
+    // Setup Calibration Points
+    function setupCalibrationPoints() {
+      const grid = document.getElementById('calibrationGrid');
+      const positions = [
+        { x: '10%', y: '10%' },
+        { x: '50%', y: '10%' },
+        { x: '90%', y: '10%' },
+        { x: '10%', y: '50%' },
+        { x: '50%', y: '50%' },
+        { x: '90%', y: '50%' },
+        { x: '10%', y: '90%' },
+        { x: '50%', y: '90%' },
+        { x: '90%', y: '90%' }
+      ];
 
-      // 使用捏合交点控制光标和圆圈位置
-      const x = (1 - gestureData.pinchX) * window.innerWidth;
-      const y = gestureData.pinchY * window.innerHeight;
+      let currentPoint = 0;
 
+      positions.forEach((pos, index) => {
+        const point = document.createElement('div');
+        point.className = 'calibration-point';
+        point.style.left = pos.x;
+        point.style.top = pos.y;
+        point.style.transform = 'translate(-50%, -50%)';
+        point.id = `point-${index}`;
+        
+        point.addEventListener('click', () => {
+          if (index === currentPoint) {
+            point.classList.add('completed');
+            currentPoint++;
+            document.getElementById('calibrationProgress').textContent = 
+              `Progress: ${currentPoint}/9 completed`;
+            
+            if (currentPoint < 9) {
+              document.getElementById(`point-${currentPoint}`).classList.add('active');
+            } else {
+              completeCalibration();
+            }
+          }
+        });
+        
+        grid.appendChild(point);
+      });
+
+      document.getElementById('point-0').classList.add('active');
+    }
+
+    // Complete Calibration
+    function completeCalibration() {
+      isCalibrated = true;
+      showMessage('✅ Calibration Complete! Starting eye control...');
+      
+      setTimeout(() => {
+        document.getElementById('calibrationScreen').classList.remove('active');
+        document.getElementById('eyeCursor').classList.add('active');
+        saveCalibrationData();
+      }, 2000);
+    }
+
+    // Update Eye Cursor
+    function updateEyeCursor(x, y) {
+      if (!settings.showCursor) return;
+      
+      const cursor = document.getElementById('eyeCursor');
       cursor.style.left = x + 'px';
       cursor.style.top = y + 'px';
-      cursor.style.display = 'block';
+    }
 
-      // 检测是否在捏合（距离阈值+连续帧）
-      if (pinchDistance < PINCH_DISTANCE_THRESHOLD) {
-        state.frameCount++;
+    // Check Hovered Element
+    function checkHoveredElement(x, y) {
+      const element = document.elementFromPoint(x, y);
+      
+      if (element && (element.tagName === 'A' || element.tagName === 'BUTTON')) {
+        if (hoveredElement !== element) {
+          if (hoveredElement) hoveredElement.classList.remove('eye-hovering');
+          element.classList.add('eye-hovering');
+          hoveredElement = element;
+          document.getElementById('eyeCursor').classList.add('pointer');
+        }
       } else {
-        state.frameCount = 0;
-      }
-
-      // 刚进入捏合状态（开始计时）
-      if (!state.isPinching && state.frameCount >= PINCH_FRAMES_REQUIRED) {
-        state.isPinching = true;
-        state.startY = y;
-        state.lastY = y;
-        state.smoothY = y;
-        state.startTime = performance.now();
-        state.moved = false;
-        state.mode = 'pending';       // 还没到 1 秒，等待决定是点击还是滚动
-        state.circleActive = false;
-        state.circleCenterX = null;
-        state.circleCenterY = null;
-        state.lastScrollY = null;
-        pinchCircle.style.display = 'none';
-        statusElement.textContent = `Status: ${handedness} hand pinching`;
-      }
-
-      // 处于捏合状态
-      if (state.isPinching) {
-        const now = performance.now();
-        state.lastY = y;
-
-        // 平滑 Y（用于滚动更稳）
-        if (state.smoothY === null) {
-          state.smoothY = y;
-        } else {
-          state.smoothY = state.smoothY * 0.7 + y * 0.3;
-        }
-
-        const elapsed = now - state.startTime;
-
-        // 满 1 秒，进入滚动模式，显示圆圈
-        if (elapsed >= SCROLL_ACTIVATE_TIME && state.mode === 'pending') {
-          state.mode = 'scroll';
-          state.circleActive = true;
-          state.circleCenterX = x;
-          state.circleCenterY = y;
-          state.lastScrollY = y;
-
-          pinchCircle.style.display = 'block';
-          pinchCircle.style.left = (x - CIRCLE_RADIUS_PX) + 'px';
-          pinchCircle.style.top  = (y - CIRCLE_RADIUS_PX) + 'px';
-          pinchCircle.style.width  = CIRCLE_DIAMETER_PX + 'px';
-          pinchCircle.style.height = CIRCLE_DIAMETER_PX + 'px';
-
-          statusElement.textContent = `Status: ${handedness} hand scroll mode`;
-        }
-
-        // 滚动模式：捏合交点相对圆圈中心移动超出 1cm 才滚动页面
-        if (state.mode === 'scroll' && state.circleActive) {
-          const dyFromCircle = y - state.circleCenterY;
-
-          if (Math.abs(dyFromCircle) > CIRCLE_RADIUS_PX) {
-            const frame = document.getElementById('website-frame');
-            const scrollDelta = (state.smoothY - state.lastScrollY) * SCROLL_SPEED;
-
-            if (frame && frame.contentWindow) {
-              try {
-                frame.contentWindow.scrollBy(0, scrollDelta);
-              } catch (e) {
-                window.scrollBy(0, scrollDelta);
-              }
-            } else {
-              window.scrollBy(0, scrollDelta);
-            }
-
-            state.moved = true;
-            state.lastScrollY = state.smoothY;
-
-            // 圆圈跟随捏合点移动（每次滚动后更新圆心，形成“死区”）
-            state.circleCenterX = x;
-            state.circleCenterY = y;
-            pinchCircle.style.left = (state.circleCenterX - CIRCLE_RADIUS_PX) + 'px';
-            pinchCircle.style.top  = (state.circleCenterY - CIRCLE_RADIUS_PX) + 'px';
-
-            statusElement.textContent = `Status: ${handedness} scrolling`;
-          } else {
-            statusElement.textContent = `Status: ${handedness} pinch inside circle (no scroll)`;
-          }
-        }
-      }
-
-      // 没有处于捏合中时的状态提示
-      if (!state.isPinching) {
-        if (allExtended) {
-          statusElement.textContent = 'Status: Move the cursor (palm)';
-          cursor.className = '';
-        } else if (indexStraight) {
-          statusElement.textContent = 'Status: Index up (no scroll - now use pinch)';
-        } else {
-          statusElement.textContent = 'Status: Waiting for gesture…';
+        if (hoveredElement) {
+          hoveredElement.classList.remove('eye-hovering');
+          hoveredElement = null;
+          document.getElementById('eyeCursor').classList.remove('pointer');
         }
       }
     }
 
-    // 根据捏合持续时间判断点击（<1s）还是滚动结束（>=1s）
-    function handlePinchEnd(handedness) {
-      const state = pinchState[handedness];
-      if (!state.isPinching) return;
+    // Detect Blink (Simplified)
+    function detectBlink() {
+      // This is a simplified simulation for demo purposes
+      // Real implementation would use WebGazer's eye aspect ratio analysis
+      // or integrate with libraries like clmtrackr for proper blink detection
+      
+      // Simulate random blink detection (replace with real implementation)
+      const randomBlink = Math.random() < 0.015; // 1.5% chance per check
+      
+      if (randomBlink && hoveredElement && isCalibrated) {
+        handleBlink();
+      }
+    }
 
-      const now = performance.now();
-      const duration = state.startTime ? (now - state.startTime) : 0;
-
-      if (state.mode === 'pending' && duration < SCROLL_ACTIVATE_TIME) {
-        // 捏住不到 1 秒：视为点击
-        triggerClickAtCursor();
-        statusElement.textContent = `Status: ${handedness} click (pinch < 0.5s)`;
+    // Handle Blink
+    function handleBlink() {
+      const now = Date.now();
+      const indicator = document.getElementById('blinkIndicator');
+      
+      indicator.classList.add('blinking');
+      setTimeout(() => indicator.classList.remove('blinking'), 200);
+      
+      if (now - lastBlinkTime < 1000) {
+        // Second blink within 1 second
+        blinkCount++;
+        
+        if (blinkCount >= 2 && hoveredElement) {
+          triggerClick(hoveredElement);
+          blinkCount = 0;
+        }
       } else {
-        // 已经进入滚动模式：只结束滚动，不触发点击
-        statusElement.textContent = `Status: ${handedness} pinch ended`;
-      }
-
-      state.isPinching = false;
-      state.frameCount = 0;
-      state.lastY = null;
-      state.startY = null;
-      state.smoothY = null;
-      state.startTime = null;
-      state.moved = false;
-      state.mode = 'idle';
-      state.circleActive = false;
-      state.circleCenterX = null;
-      state.circleCenterY = null;
-      state.lastScrollY = null;
-
-      pinchCircle.style.display = 'none';
-    }
-
-    // 在 iframe 内部，以 (x, y) 为中心，在一个小方形区域内搜索最近的可点击元素
-    function findBestClickableInIframe(iframeDoc, x, y) {
-      let bestElement = null;
-      let bestDistance = Infinity;
-
-      for (let dx = -CLICK_SEARCH_RADIUS; dx <= CLICK_SEARCH_RADIUS; dx += CLICK_SEARCH_STEP) {
-        for (let dy = -CLICK_SEARCH_RADIUS; dy <= CLICK_SEARCH_RADIUS; dy += CLICK_SEARCH_STEP) {
-          const testX = x + dx;
-          const testY = y + dy;
-          const el = iframeDoc.elementFromPoint(testX, testY);
-          if (!el) continue;
-
-          // 限定可点击元素：a、button、role="button"、有 onclick 的元素
-          const clickable = el.closest('a, button, [role="button"], [onclick]');
-          if (!clickable) continue;
-
-          const dist = Math.hypot(dx, dy);
-          if (dist < bestDistance) {
-            bestDistance = dist;
-            bestElement = clickable;
-          }
+        // First blink
+        blinkCount = 1;
+        if (hoveredElement) {
+          hoveredElement.classList.add('eye-blink-once');
+          setTimeout(() => {
+            if (hoveredElement) hoveredElement.classList.remove('eye-blink-once');
+          }, 1000);
         }
       }
-
-      return bestElement;
+      
+      lastBlinkTime = now;
     }
 
-    function triggerClickAtCursor() {
-      if (clickCooldown) return;
-      const frame = document.getElementById('website-frame');
-      const frameRect = frame.getBoundingClientRect();
-      const cx = parseFloat(cursor.style.left || 0);
-      const cy = parseFloat(cursor.style.top || 0);
-      const iframeX = cx - frameRect.left;
-      const iframeY = cy - frameRect.top;
-
-      if (frame && frame.contentWindow) {
-        try {
-          const iframeDoc = frame.contentWindow.document;
-
-          // 先在附近区域找“最近的可点击元素”（策略5）
-          let targetElement = findBestClickableInIframe(iframeDoc, iframeX, iframeY);
-
-          // 如果附近找不到，就退回到光标正下方的元素
-          if (!targetElement) {
-            const el = iframeDoc.elementFromPoint(iframeX, iframeY);
-            if (el) {
-              targetElement = el.closest('a, button, [role="button"], [onclick]') || el;
-            }
-          }
-          
-          if (targetElement) {
-            const rect = targetElement.getBoundingClientRect();
-            const clickEvent = new MouseEvent('click', {
-              bubbles: true,
-              cancelable: true,
-              view: frame.contentWindow,
-              // 用元素中心点发点击，更稳一点
-              clientX: rect.left + rect.width / 2,
-              clientY: rect.top + rect.height / 2
-            });
-            targetElement.dispatchEvent(clickEvent);
-          }
-        } catch (e) {
-          console.warn('Cross-origin restrictions prevent access to iframe content:', e);
-        }
-      }
-
-      cursor.className = 'clicking';
-      clickCooldown = true;
+    // Trigger Click
+    function triggerClick(element) {
+      element.classList.add('eye-clicking');
+      document.getElementById('eyeCursor').classList.add('clicking');
+      
       setTimeout(() => {
-        clickCooldown = false;
-        cursor.className = '';
-      }, 400);
+        element.click();
+        element.classList.remove('eye-clicking', 'eye-hovering', 'eye-blink-once');
+        document.getElementById('eyeCursor').classList.remove('clicking');
+        showMessage('✓ Clicked!');
+      }, 300);
     }
 
-    const hands = new Hands({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
-    
-    hands.setOptions({
-      maxNumHands: 2,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.5
-    });
-    
-    hands.onResults(results => {
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+    // Check Scroll Circles
+    function checkScrollCircles(x, y) {
+      if (!settings.showCircles) return;
       
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-          const landmarks = results.multiHandLandmarks[i];
-          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
-            color: '#0000FF', 
-            lineWidth: 1
-          });
-          drawLandmarks(canvasCtx, landmarks, {
-            color: '#FF0000', 
-            lineWidth: 1,
-            radius: 1.5
-          });
-        }
-
-        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-          const landmarks = results.multiHandLandmarks[i];
-          const rawHandedness = (results.multiHandedness && results.multiHandedness[i] && results.multiHandedness[i].label) || 'Right';
-          // 镜像后左右会反，所以这里做了转换
-          const handedness = rawHandedness === 'Left' ? 'Right' : 'Left';
-          const g = recognizeGesture(landmarks);
-          performGestureForHand(handedness, g);
-        }
+      const upCircle = document.getElementById('scrollUp');
+      const downCircle = document.getElementById('scrollDown');
+      const upRect = upCircle.getBoundingClientRect();
+      const downRect = downCircle.getBoundingClientRect();
+      
+      const inUpCircle = isPointInCircle(x, y, upRect);
+      const inDownCircle = isPointInCircle(x, y, downRect);
+      
+      if (inUpCircle) {
+        handleScrollGaze('up', upCircle);
       } else {
-        // 没有检测到手时，结束两只手的捏合状态
-        handlePinchEnd('Left');
-        handlePinchEnd('Right');
-        cursor.style.display = 'none';
-        statusElement.textContent = 'Status: Waiting for detection…';
+        resetScrollGaze('up', upCircle);
       }
       
-      canvasCtx.restore();
-    });
-    
-    const camera = new Camera(videoElement, {
-      onFrame: async () => await hands.send({image: videoElement}),
-      width: 640,
-      height: 480
-    });
-    camera.start();
+      if (inDownCircle) {
+        handleScrollGaze('down', downCircle);
+      } else {
+        resetScrollGaze('down', downCircle);
+      }
+    }
 
-    // 如果检测到捏合结束（frameCount 归零），则调用 handlePinchEnd
-    setInterval(() => {
-      ['Left','Right'].forEach(h => {
-        const s = pinchState[h];
-        if (s.isPinching && s.frameCount === 0) {
-          handlePinchEnd(h);
+    // Handle Scroll Gaze
+    function handleScrollGaze(direction, circle) {
+      const now = Date.now();
+      
+      if (gazeStartTime[direction] === 0) {
+        gazeStartTime[direction] = now;
+        circle.classList.add('gazing');
+      }
+      
+      const gazeDuration = now - gazeStartTime[direction];
+      const progress = Math.min(gazeDuration / 800, 1) * 360;
+      
+      circle.querySelector('.scroll-circle-progress').style.background = 
+        `conic-gradient(#477dfc ${progress}deg, transparent ${progress}deg)`;
+      
+      if (gazeDuration >= 800 && !scrolling) {
+        startScrolling(direction, circle);
+      }
+    }
+
+    // Reset Scroll Gaze
+    function resetScrollGaze(direction, circle) {
+      gazeStartTime[direction] = 0;
+      circle.classList.remove('gazing', 'active');
+      circle.querySelector('.scroll-circle-progress').style.background = 
+        'conic-gradient(#477dfc 0deg, transparent 0deg)';
+      
+      if (scrolling && scrollDirection === direction) {
+        stopScrolling(circle);
+      }
+    }
+
+    // Start Scrolling
+    function startScrolling(direction, circle) {
+      if (scrolling) return; // Prevent multiple intervals
+      
+      scrolling = true;
+      scrollDirection = direction;
+      circle.classList.add('active');
+      
+      let scrollSpeed = 5;
+      const scrollInterval = setInterval(() => {
+        if (!scrolling || scrollDirection !== direction) {
+          clearInterval(scrollInterval);
+          return;
         }
-      });
-    }, 80);
+        
+        // Gradually increase speed
+        if (scrollSpeed < 15) scrollSpeed += 0.2;
+        
+        if (direction === 'up') {
+          window.scrollBy(0, -scrollSpeed);
+          if (window.scrollY === 0) {
+            clearInterval(scrollInterval);
+            stopScrolling(circle);
+          }
+        } else {
+          window.scrollBy(0, scrollSpeed);
+          if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
+            clearInterval(scrollInterval);
+            stopScrolling(circle);
+          }
+        }
+      }, 16);
+    }
 
+    // Stop Scrolling
+    function stopScrolling(circle) {
+      scrolling = false;
+      scrollDirection = null;
+      circle.classList.remove('active');
+    }
+
+    // Is Point in Circle
+    function isPointInCircle(x, y, rect) {
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const radius = rect.width / 2;
+      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      return distance <= radius;
+    }
+
+    // Show Message
+    function showMessage(text) {
+      const toast = document.getElementById('messageToast');
+      toast.textContent = text;
+      toast.classList.add('visible');
+      setTimeout(() => toast.classList.remove('visible'), 2000);
+    }
+
+    // Recalibrate
+    function recalibrate() {
+      isCalibrated = false;
+      const calibGrid = document.getElementById('calibrationGrid');
+      if (calibGrid) {
+        calibGrid.innerHTML = '';
+      }
+      const calibScreen = document.getElementById('calibrationScreen');
+      calibScreen.innerHTML = `
+        <div class="calibration-instruction">Please gaze at each point for 2 seconds</div>
+        <div class="calibration-grid" id="calibrationGrid"></div>
+        <div class="calibration-progress" id="calibrationProgress">Progress: 0/9 completed</div>
+      `;
+      calibScreen.classList.add('active');
+      setupCalibrationPoints();
+    }
+
+    // Toggle Settings
+    function toggleSettings() {
+      const panel = document.getElementById('settingsPanel');
+      panel.classList.toggle('active');
+    }
+
+    // Toggle Webcam
+    function toggleWebcam() {
+      const preview = document.getElementById('webcamPreview');
+      preview.style.display = preview.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Load Settings
+    function loadSettings() {
+      const saved = localStorage.getItem('eyeControlSettings');
+      if (saved) {
+        settings = JSON.parse(saved);
+        applySettings();
+      }
+    }
+
+    // Save Settings
+    function saveSettings() {
+      settings.sensitivity = document.getElementById('sensitivitySlider').value;
+      settings.blinkSensitivity = document.getElementById('blinkSlider').value;
+      settings.circleSize = document.getElementById('circleSizeSlider').value;
+      settings.showWebcam = document.getElementById('showWebcam').checked;
+      settings.showCursor = document.getElementById('showCursor').checked;
+      settings.showCircles = document.getElementById('showCircles').checked;
+      
+      localStorage.setItem('eyeControlSettings', JSON.stringify(settings));
+      applySettings();
+      toggleSettings();
+      showMessage('✓ Settings saved!');
+    }
+
+    // Apply Settings
+    function applySettings() {
+      document.getElementById('sensitivitySlider').value = settings.sensitivity;
+      document.getElementById('sensitivityValue').textContent = settings.sensitivity;
+      document.getElementById('blinkSlider').value = settings.blinkSensitivity;
+      document.getElementById('blinkSensitivityValue').textContent = settings.blinkSensitivity;
+      document.getElementById('circleSizeSlider').value = settings.circleSize;
+      document.getElementById('circleSizeValue').textContent = settings.circleSize;
+      document.getElementById('showWebcam').checked = settings.showWebcam;
+      document.getElementById('showCursor').checked = settings.showCursor;
+      document.getElementById('showCircles').checked = settings.showCircles;
+      
+      document.getElementById('webcamPreview').style.display = settings.showWebcam ? 'block' : 'none';
+      document.getElementById('eyeCursor').style.display = settings.showCursor ? 'block' : 'none';
+      document.getElementById('scrollUp').style.display = settings.showCircles ? 'flex' : 'none';
+      document.getElementById('scrollDown').style.display = settings.showCircles ? 'flex' : 'none';
+      
+      const size = settings.circleSize;
+      document.getElementById('scrollUp').style.width = size + 'px';
+      document.getElementById('scrollUp').style.height = size + 'px';
+      document.getElementById('scrollDown').style.width = size + 'px';
+      document.getElementById('scrollDown').style.height = size + 'px';
+    }
+
+    // Reset Settings
+    function resetSettings() {
+      settings = {
+        sensitivity: 50,
+        blinkSensitivity: 60,
+        circleSize: 60,
+        showWebcam: true,
+        showCursor: true,
+        showCircles: true
+      };
+      applySettings();
+      showMessage('✓ Settings reset to defaults');
+    }
+
+    // Save Calibration Data
+    function saveCalibrationData() {
+      const calibrationData = {
+        timestamp: new Date().toISOString(),
+        expiresIn: 7 * 24 * 60 * 60 * 1000 // 7 days
+      };
+      localStorage.setItem('eyeControlCalibration', JSON.stringify(calibrationData));
+    }
+
+    // Update sliders in real-time
+    document.getElementById('sensitivitySlider')?.addEventListener('input', (e) => {
+      document.getElementById('sensitivityValue').textContent = e.target.value;
+    });
+
+    document.getElementById('blinkSlider')?.addEventListener('input', (e) => {
+      document.getElementById('blinkSensitivityValue').textContent = e.target.value;
+    });
+
+    document.getElementById('circleSizeSlider')?.addEventListener('input', (e) => {
+      document.getElementById('circleSizeValue').textContent = e.target.value;
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.location.href = 'index.html';
+      } else if (e.key === 'h' || e.key === 'H') {
+        showMessage('📖 Press ESC to exit | R to recalibrate | Space to click selected element');
+      } else if (e.key === 'r' || e.key === 'R') {
+        recalibrate();
+      } else if (e.key === ' ' && hoveredElement) {
+        e.preventDefault();
+        triggerClick(hoveredElement);
+      }
+    });
+
+    // Update FPS display
+    let lastFrameTime = Date.now();
+    let frameCount = 0;
+    setInterval(() => {
+      const now = Date.now();
+      const fps = Math.round(frameCount * 1000 / (now - lastFrameTime));
+      document.getElementById('fpsDisplay').textContent = fps;
+      frameCount = 0;
+      lastFrameTime = now;
+    }, 1000);
+
+    setInterval(() => frameCount++, 33);
+
+    // Monitor tracking status
+    setInterval(() => {
+      if (typeof webgazer !== 'undefined' && webgazer.isReady) {
+        const tracking = webgazer.isReady();
+        const indicator = document.getElementById('trackingIndicator');
+        const status = document.getElementById('trackingStatus');
+        
+        if (tracking && isCalibrated) {
+          indicator.className = 'status-indicator';
+          status.textContent = 'Normal';
+        } else if (!isCalibrated) {
+          indicator.className = 'status-indicator warning';
+          status.textContent = 'Not Calibrated';
+        } else {
+          indicator.className = 'status-indicator error';
+          status.textContent = 'Lost';
+        }
+      }
+    }, 1000);
   </script>
 </body>
 </html>
