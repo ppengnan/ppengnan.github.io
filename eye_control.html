@@ -98,6 +98,7 @@
       height: 150px;
       background: #000;
       display: block;
+      transform: scaleX(-1);
     }
 
     .webcam-controls {
@@ -286,14 +287,14 @@
       bottom: 0;
       background: white;
       z-index: 10002;
-      display: flex;
+      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
     }
 
-    .calibration-screen.hidden {
-      display: none;
+    .calibration-screen.active {
+      display: flex;
     }
 
     .calibration-instruction {
@@ -601,11 +602,26 @@
       showCircles: true
     };
 
-    // Initialize on load - 直接启动校准
+    // Initialize on load - 直接进入页面，不校准
     window.addEventListener('load', () => {
       loadSettings();
-      startCalibration();
+      initWithoutCalibration();
     });
+
+    // 不校准直接初始化
+    function initWithoutCalibration() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          document.getElementById('webcamVideo').srcObject = stream;
+          initWebGazer();
+          // 直接标记为已校准
+          isCalibrated = true;
+          document.getElementById('eyeCursor').classList.add('active');
+        })
+        .catch(err => {
+          showMessage('❌ 摄像头访问被拒绝，请允许摄像头权限。');
+        });
+    }
 
     // Start Calibration
     function startCalibration() {
@@ -686,7 +702,7 @@
       showMessage('✅ 校准完成！开始眼动控制...');
       
       setTimeout(() => {
-        document.getElementById('calibrationScreen').classList.add('hidden');
+        document.getElementById('calibrationScreen').classList.remove('active');
         document.getElementById('eyeCursor').classList.add('active');
         saveCalibrationData();
       }, 2000);
@@ -898,7 +914,7 @@
         <div class="calibration-grid" id="calibrationGrid"></div>
         <div class="calibration-progress" id="calibrationProgress">进度: 0/3 完成</div>
       `;
-      calibScreen.classList.remove('hidden');
+      calibScreen.classList.add('active');
       setupCalibrationPoints();
     }
 
