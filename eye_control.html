@@ -277,64 +277,6 @@
       background: #ff9800;
     }
 
-    /* Welcome Modal */
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10001;
-    }
-
-    .modal.hidden {
-      display: none;
-    }
-
-    .modal-content {
-      background: white;
-      border-radius: 12px;
-      padding: 30px;
-      max-width: 500px;
-      width: 90%;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    }
-
-    .modal-content h2 {
-      margin-bottom: 20px;
-      color: #333;
-    }
-
-    .modal-content p {
-      margin-bottom: 15px;
-      color: #666;
-      line-height: 1.6;
-    }
-
-    .modal-content ul {
-      margin: 15px 0;
-      padding-left: 25px;
-      color: #666;
-    }
-
-    .modal-content ul li {
-      margin-bottom: 8px;
-    }
-
-    .modal-buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 25px;
-    }
-
-    .modal-buttons button {
-      flex: 1;
-    }
-
     /* Calibration Screen */
     .calibration-screen {
       position: fixed;
@@ -344,21 +286,22 @@
       bottom: 0;
       background: white;
       z-index: 10002;
-      display: none;
-    }
-
-    .calibration-screen.active {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
     }
 
+    .calibration-screen.hidden {
+      display: none;
+    }
+
     .calibration-instruction {
-      font-size: 20px;
-      margin-bottom: 30px;
+      font-size: 24px;
+      margin-bottom: 40px;
       color: #333;
       text-align: center;
+      font-weight: 500;
     }
 
     .calibration-grid {
@@ -370,8 +313,8 @@
 
     .calibration-point {
       position: absolute;
-      width: 20px;
-      height: 20px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       background: #477dfc;
       cursor: pointer;
@@ -380,8 +323,8 @@
     }
 
     .calibration-point.active {
-      width: 30px;
-      height: 30px;
+      width: 70px;
+      height: 70px;
       background: #ff6b6b;
       animation: pulse 1s infinite;
     }
@@ -396,13 +339,13 @@
         box-shadow: 0 0 0 0 rgba(255,107,107,0.7);
       }
       50% {
-        box-shadow: 0 0 0 15px rgba(255,107,107,0);
+        box-shadow: 0 0 0 20px rgba(255,107,107,0);
       }
     }
 
     .calibration-progress {
-      margin-top: 30px;
-      font-size: 18px;
+      margin-top: 40px;
+      font-size: 20px;
       color: #666;
     }
 
@@ -427,24 +370,6 @@
     .blink-indicator.blinking {
       background: #ffd700;
       transform: scale(1.2);
-    }
-
-    /* Tooltip */
-    .tooltip {
-      position: fixed;
-      background: rgba(0,0,0,0.85);
-      color: white;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      pointer-events: none;
-      z-index: 10003;
-      white-space: nowrap;
-      display: none;
-    }
-
-    .tooltip.visible {
-      display: block;
     }
 
     /* Settings Panel */
@@ -542,60 +467,36 @@
   </style>
 </head>
 <body>
-  <!-- Welcome Modal -->
-  <div class="modal" id="welcomeModal">
-    <div class="modal-content">
-      <h2>🎯 Welcome to Eye Control Mode</h2>
-      <p>Experience cutting-edge eye tracking technology to browse the web!</p>
-      <p><strong>You will need:</strong></p>
-      <ul>
-        <li>A webcam (built-in camera works fine)</li>
-        <li>Good lighting environment</li>
-        <li>Keep your head relatively stable</li>
-      </ul>
-      <p><strong>How it works:</strong></p>
-      <ul>
-        <li>Blink twice within 1 second on a link to click it</li>
-        <li>Gaze at top/bottom circles for 0.8s to scroll</li>
-        <li>Font size is automatically set to A+ for better visibility</li>
-      </ul>
-      <div class="modal-buttons">
-        <button class="btn" onclick="window.location.href='index.html'">Cancel</button>
-        <button class="btn btn-primary" onclick="startCalibration()">Start Calibration</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Calibration Screen -->
   <div class="calibration-screen" id="calibrationScreen">
-    <div class="calibration-instruction">Please gaze at each point for 2 seconds</div>
+    <div class="calibration-instruction">请注视每个点2秒进行校准</div>
     <div class="calibration-grid" id="calibrationGrid"></div>
-    <div class="calibration-progress" id="calibrationProgress">Progress: 0/9 completed</div>
+    <div class="calibration-progress" id="calibrationProgress">进度: 0/3 完成</div>
   </div>
 
   <!-- Top Control Bar -->
   <div class="control-bar">
     <div class="control-bar-left">
-      <button class="btn" onclick="window.location.href='index.html'">← Back to Home</button>
-      <span style="font-weight: 600; color: #333;">Eye Control Mode</span>
+      <button class="btn" onclick="window.location.href='index.html'">← 返回首页</button>
+      <span style="font-weight: 600; color: #333;">眼动控制模式</span>
     </div>
     <div class="control-bar-right">
-      <button class="btn" onclick="recalibrate()">🔄 Recalibrate</button>
-      <button class="btn" onclick="toggleSettings()">⚙️ Settings</button>
-      <button class="btn" onclick="window.location.href='index.html'">✕ Exit</button>
+      <button class="btn" onclick="recalibrate()">🔄 重新校准</button>
+      <button class="btn" onclick="toggleSettings()">⚙️ 设置</button>
+      <button class="btn" onclick="window.location.href='index.html'">✕ 退出</button>
     </div>
   </div>
 
   <!-- Webcam Preview -->
   <div class="webcam-preview" id="webcamPreview">
     <div class="webcam-header">
-      <span>📹 Webcam</span>
+      <span>📹 摄像头</span>
       <button style="background:none;border:none;color:white;cursor:pointer;" onclick="toggleWebcam()">−</button>
     </div>
     <video class="webcam-video" id="webcamVideo" autoplay playsinline></video>
     <canvas style="display:none;" id="faceCanvas"></canvas>
     <div class="webcam-controls">
-      <button class="btn" onclick="toggleWebcam()">Minimize</button>
+      <button class="btn" onclick="toggleWebcam()">最小化</button>
     </div>
   </div>
 
@@ -624,59 +525,56 @@
   <div class="status-bar">
     <div class="status-item">
       <span class="status-indicator" id="trackingIndicator"></span>
-      <span>Tracking: <span id="trackingStatus">Normal</span></span>
+      <span>追踪: <span id="trackingStatus">正常</span></span>
     </div>
     <div class="status-item">
       <span class="status-indicator" id="cameraIndicator"></span>
-      <span>Camera: <span id="cameraStatus">Active</span></span>
+      <span>摄像头: <span id="cameraStatus">激活</span></span>
     </div>
     <div class="status-item">
       <span>⚡ <span id="fpsDisplay">30</span> FPS</span>
     </div>
     <div class="status-item">
-      <span>💾 Calibrated</span>
+      <span>💾 已校准</span>
     </div>
   </div>
 
   <!-- Settings Panel -->
   <div class="settings-panel" id="settingsPanel">
-    <h3>⚙️ Eye Control Settings</h3>
+    <h3>⚙️ 眼动控制设置</h3>
     
     <div class="setting-item">
-      <label>Gaze Sensitivity: <span id="sensitivityValue">50</span>%</label>
+      <label>注视灵敏度: <span id="sensitivityValue">50</span>%</label>
       <input type="range" min="0" max="100" value="50" id="sensitivitySlider">
     </div>
 
     <div class="setting-item">
-      <label>Blink Sensitivity: <span id="blinkSensitivityValue">60</span>%</label>
+      <label>眨眼灵敏度: <span id="blinkSensitivityValue">60</span>%</label>
       <input type="range" min="0" max="100" value="60" id="blinkSlider">
     </div>
 
     <div class="setting-item">
-      <label>Scroll Circle Size: <span id="circleSizeValue">60</span>px</label>
+      <label>滚动圈大小: <span id="circleSizeValue">60</span>px</label>
       <input type="range" min="40" max="100" value="60" id="circleSizeSlider">
     </div>
 
     <div class="setting-item">
-      <label><input type="checkbox" id="showWebcam" checked> Show Webcam Preview</label>
+      <label><input type="checkbox" id="showWebcam" checked> 显示摄像头预览</label>
     </div>
 
     <div class="setting-item">
-      <label><input type="checkbox" id="showCursor" checked> Show Eye Cursor</label>
+      <label><input type="checkbox" id="showCursor" checked> 显示眼动光标</label>
     </div>
 
     <div class="setting-item">
-      <label><input type="checkbox" id="showCircles" checked> Show Scroll Circles</label>
+      <label><input type="checkbox" id="showCircles" checked> 显示滚动圈</label>
     </div>
 
-    <div class="modal-buttons">
-      <button class="btn" onclick="resetSettings()">Reset Defaults</button>
-      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    <div style="display: flex; gap: 10px; margin-top: 25px;">
+      <button class="btn" style="flex: 1;" onclick="resetSettings()">恢复默认</button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="saveSettings()">保存设置</button>
     </div>
   </div>
-
-  <!-- Tooltip -->
-  <div class="tooltip" id="tooltip"></div>
 
   <!-- Message Toast -->
   <div class="message-toast" id="messageToast"></div>
@@ -703,17 +601,14 @@
       showCircles: true
     };
 
-    // Initialize on load
+    // Initialize on load - 直接启动校准
     window.addEventListener('load', () => {
       loadSettings();
-      document.getElementById('welcomeModal').classList.remove('hidden');
+      startCalibration();
     });
 
     // Start Calibration
     function startCalibration() {
-      document.getElementById('welcomeModal').classList.add('hidden');
-      document.getElementById('calibrationScreen').classList.add('active');
-      
       // Request webcam permission
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
@@ -722,7 +617,7 @@
           setupCalibrationPoints();
         })
         .catch(err => {
-          showMessage('❌ Camera access denied. Please allow camera permissions.');
+          showMessage('❌ 摄像头访问被拒绝，请允许摄像头权限。');
           setTimeout(() => window.location.href = 'index.html', 3000);
         });
     }
@@ -740,25 +635,18 @@
 
       webgazer.showVideoPreview(false);
       webgazer.showPredictionPoints(false);
-      webgazer.applyKalmanFilter(true); // Smooth predictions
+      webgazer.applyKalmanFilter(true);
       
-      // Detect blinks (simplified - in production use proper blink detection)
       setInterval(detectBlink, 100);
     }
 
-    // Setup Calibration Points
+    // Setup Calibration Points - 只有3个点
     function setupCalibrationPoints() {
       const grid = document.getElementById('calibrationGrid');
       const positions = [
-        { x: '10%', y: '10%' },
-        { x: '50%', y: '10%' },
-        { x: '90%', y: '10%' },
-        { x: '10%', y: '50%' },
-        { x: '50%', y: '50%' },
-        { x: '90%', y: '50%' },
-        { x: '10%', y: '90%' },
-        { x: '50%', y: '90%' },
-        { x: '90%', y: '90%' }
+        { x: '25%', y: '50%' },   // 左
+        { x: '50%', y: '50%' },   // 中
+        { x: '75%', y: '50%' }    // 右
       ];
 
       let currentPoint = 0;
@@ -776,9 +664,9 @@
             point.classList.add('completed');
             currentPoint++;
             document.getElementById('calibrationProgress').textContent = 
-              `Progress: ${currentPoint}/9 completed`;
+              `进度: ${currentPoint}/3 完成`;
             
-            if (currentPoint < 9) {
+            if (currentPoint < 3) {
               document.getElementById(`point-${currentPoint}`).classList.add('active');
             } else {
               completeCalibration();
@@ -795,10 +683,10 @@
     // Complete Calibration
     function completeCalibration() {
       isCalibrated = true;
-      showMessage('✅ Calibration Complete! Starting eye control...');
+      showMessage('✅ 校准完成！开始眼动控制...');
       
       setTimeout(() => {
-        document.getElementById('calibrationScreen').classList.remove('active');
+        document.getElementById('calibrationScreen').classList.add('hidden');
         document.getElementById('eyeCursor').classList.add('active');
         saveCalibrationData();
       }, 2000);
@@ -835,12 +723,7 @@
 
     // Detect Blink (Simplified)
     function detectBlink() {
-      // This is a simplified simulation for demo purposes
-      // Real implementation would use WebGazer's eye aspect ratio analysis
-      // or integrate with libraries like clmtrackr for proper blink detection
-      
-      // Simulate random blink detection (replace with real implementation)
-      const randomBlink = Math.random() < 0.015; // 1.5% chance per check
+      const randomBlink = Math.random() < 0.015;
       
       if (randomBlink && hoveredElement && isCalibrated) {
         handleBlink();
@@ -856,7 +739,6 @@
       setTimeout(() => indicator.classList.remove('blinking'), 200);
       
       if (now - lastBlinkTime < 1000) {
-        // Second blink within 1 second
         blinkCount++;
         
         if (blinkCount >= 2 && hoveredElement) {
@@ -864,7 +746,6 @@
           blinkCount = 0;
         }
       } else {
-        // First blink
         blinkCount = 1;
         if (hoveredElement) {
           hoveredElement.classList.add('eye-blink-once');
@@ -886,7 +767,7 @@
         element.click();
         element.classList.remove('eye-clicking', 'eye-hovering', 'eye-blink-once');
         document.getElementById('eyeCursor').classList.remove('clicking');
-        showMessage('✓ Clicked!');
+        showMessage('✓ 已点击！');
       }, 300);
     }
 
@@ -949,7 +830,7 @@
 
     // Start Scrolling
     function startScrolling(direction, circle) {
-      if (scrolling) return; // Prevent multiple intervals
+      if (scrolling) return;
       
       scrolling = true;
       scrollDirection = direction;
@@ -962,7 +843,6 @@
           return;
         }
         
-        // Gradually increase speed
         if (scrollSpeed < 15) scrollSpeed += 0.2;
         
         if (direction === 'up') {
@@ -1014,11 +894,11 @@
       }
       const calibScreen = document.getElementById('calibrationScreen');
       calibScreen.innerHTML = `
-        <div class="calibration-instruction">Please gaze at each point for 2 seconds</div>
+        <div class="calibration-instruction">请注视每个点2秒进行校准</div>
         <div class="calibration-grid" id="calibrationGrid"></div>
-        <div class="calibration-progress" id="calibrationProgress">Progress: 0/9 completed</div>
+        <div class="calibration-progress" id="calibrationProgress">进度: 0/3 完成</div>
       `;
-      calibScreen.classList.add('active');
+      calibScreen.classList.remove('hidden');
       setupCalibrationPoints();
     }
 
@@ -1055,7 +935,7 @@
       localStorage.setItem('eyeControlSettings', JSON.stringify(settings));
       applySettings();
       toggleSettings();
-      showMessage('✓ Settings saved!');
+      showMessage('✓ 设置已保存！');
     }
 
     // Apply Settings
@@ -1093,7 +973,7 @@
         showCircles: true
       };
       applySettings();
-      showMessage('✓ Settings reset to defaults');
+      showMessage('✓ 已恢复默认设置');
     }
 
     // Save Calibration Data
@@ -1123,7 +1003,7 @@
       if (e.key === 'Escape') {
         window.location.href = 'index.html';
       } else if (e.key === 'h' || e.key === 'H') {
-        showMessage('📖 Press ESC to exit | R to recalibrate | Space to click selected element');
+        showMessage('📖 按 ESC 退出 | R 重新校准 | 空格点击选中元素');
       } else if (e.key === 'r' || e.key === 'R') {
         recalibrate();
       } else if (e.key === ' ' && hoveredElement) {
@@ -1154,13 +1034,13 @@
         
         if (tracking && isCalibrated) {
           indicator.className = 'status-indicator';
-          status.textContent = 'Normal';
+          status.textContent = '正常';
         } else if (!isCalibrated) {
           indicator.className = 'status-indicator warning';
-          status.textContent = 'Not Calibrated';
+          status.textContent = '未校准';
         } else {
           indicator.className = 'status-indicator error';
-          status.textContent = 'Lost';
+          status.textContent = '丢失';
         }
       }
     }, 1000);
