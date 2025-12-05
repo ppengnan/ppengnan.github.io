@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>改进版眼动追踪 - Nan Peng</title>
+  <title>Eye Control Mode - Nan Peng</title>
   <style>
     * {
       margin: 0;
@@ -74,7 +74,7 @@
       position: fixed;
       top: 80px;
       right: 20px;
-      width: 240px;
+      width: 200px;
       background: white;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -87,6 +87,7 @@
       color: white;
       padding: 8px 12px;
       font-size: 13px;
+      cursor: move;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -94,31 +95,36 @@
 
     .webcam-video {
       width: 100%;
-      height: 180px;
+      height: 150px;
       background: #000;
       display: block;
       transform: scaleX(-1);
     }
 
-    .webcam-info {
-      padding: 8px 12px;
+    .webcam-controls {
+      padding: 8px;
+      display: flex;
+      gap: 6px;
+      justify-content: space-between;
+    }
+
+    .webcam-controls button {
+      padding: 4px 8px;
       font-size: 11px;
-      color: #666;
-      background: #f5f5f5;
+      flex: 1;
     }
 
     /* Eye Cursor */
     .eye-cursor {
       position: fixed;
-      width: 20px;
-      height: 20px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,0,0,0.7) 0%, rgba(255,0,0,0.3) 70%, transparent 100%);
-      border: 2px solid white;
-      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+      background: radial-gradient(circle, rgba(0,191,255,0.8) 0%, rgba(0,191,255,0.3) 70%, transparent 100%);
+      border: 1px solid white;
       pointer-events: none;
       z-index: 9998;
-      transition: none;
+      transition: transform 0.05s ease-out;
       display: none;
     }
 
@@ -126,15 +132,150 @@
       display: block;
     }
 
-    /* Calibration Debug Point */
-    .debug-point {
+    .eye-cursor.clicking {
+      background: radial-gradient(circle, rgba(255,215,0,0.9) 0%, rgba(255,215,0,0.4) 70%, transparent 100%);
+      transform: scale(1.2);
+    }
+
+    .eye-cursor.pointer {
+      background: radial-gradient(circle, rgba(0,255,127,0.8) 0%, rgba(0,255,127,0.3) 70%, transparent 100%);
+    }
+
+    /* Scroll Circles */
+    .scroll-circle {
       position: fixed;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      border: 2px dashed #99ccff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      z-index: 9997;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .scroll-circle:hover {
+      transform: scale(1.1);
+      border-style: solid;
+      border-color: #477dfc;
+    }
+
+    .scroll-circle.active {
+      background: rgba(0,255,127,0.9);
+      border-color: #00ff7f;
+      transform: scale(1.15);
+    }
+
+    .scroll-circle-up {
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .scroll-circle-down {
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .scroll-circle-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(#477dfc 0deg, transparent 0deg);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .scroll-circle.gazing .scroll-circle-progress {
+      opacity: 0.7;
+    }
+
+    /* Content Area */
+    .content-wrapper {
+      margin-top: 60px;
+      padding: 20px;
+      max-width: 880px;
+      margin-left: auto;
+      margin-right: auto;
+      background: white;
+      min-height: calc(100vh - 60px);
+      font-size: calc(16px * 1.15);
+      line-height: 1.85;
+    }
+
+    /* Clickable Elements Highlight */
+    a, button {
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    a.eye-hovering, button.eye-hovering {
+      box-shadow: 0 0 0 4px rgba(70,130,255,0.4);
+      border-radius: 4px;
+      background-color: rgba(70,130,255,0.05);
+    }
+
+    a.eye-blink-once, button.eye-blink-once {
+      box-shadow: 0 0 0 4px rgba(255,215,0,0.6);
+      background-color: rgba(255,215,0,0.1);
+    }
+
+    a.eye-clicking, button.eye-clicking {
+      box-shadow: 0 0 0 4px rgba(0,255,127,0.8);
+      background-color: rgba(0,255,127,0.2);
+      animation: clickFlash 0.3s;
+    }
+
+    @keyframes clickFlash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; transform: scale(1.02); }
+    }
+
+    /* Status Bar */
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #333;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      font-size: 13px;
+      gap: 20px;
+      z-index: 9996;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-indicator {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: rgba(0,255,0,0.5);
-      pointer-events: none;
-      z-index: 9997;
+      background: #4caf50;
+    }
+
+    .status-indicator.error {
+      background: #f44336;
+    }
+
+    .status-indicator.warning {
+      background: #ff9800;
     }
 
     /* Calibration Screen */
@@ -144,7 +285,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: white;
       z-index: 10002;
       display: flex;
       flex-direction: column;
@@ -157,175 +298,123 @@
     }
 
     .calibration-instruction {
-      font-size: 28px;
-      margin-bottom: 20px;
-      color: white;
-      text-align: center;
-      font-weight: 600;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    .calibration-subtitle {
-      font-size: 16px;
+      font-size: 24px;
       margin-bottom: 40px;
-      color: rgba(255,255,255,0.9);
+      color: #333;
       text-align: center;
+      font-weight: 500;
     }
 
     .calibration-grid {
       position: relative;
-      width: 90vw;
-      height: 70vh;
-      max-width: 1200px;
+      width: 80vw;
+      height: 60vh;
+      max-width: 1000px;
     }
 
     .calibration-point {
       position: absolute;
-      width: 60px;
-      height: 60px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
-      background: white;
+      background: #477dfc;
       cursor: pointer;
       transition: all 0.3s;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      font-weight: bold;
-      color: #667eea;
+      box-shadow: 0 0 0 0 rgba(71,125,252,0.5);
     }
 
     .calibration-point.active {
-      width: 80px;
-      height: 80px;
+      width: 70px;
+      height: 70px;
       background: #ff6b6b;
-      color: white;
-      animation: pulse 1.5s infinite;
+      animation: pulse 1s infinite;
     }
 
     .calibration-point.completed {
-      background: #51cf66;
-      color: white;
+      background: #4caf50;
       animation: none;
     }
 
     @keyframes pulse {
       0%, 100% {
-        transform: translate(-50%, -50%) scale(1);
         box-shadow: 0 0 0 0 rgba(255,107,107,0.7);
       }
       50% {
-        transform: translate(-50%, -50%) scale(1.1);
-        box-shadow: 0 0 0 30px rgba(255,107,107,0);
+        box-shadow: 0 0 0 20px rgba(255,107,107,0);
       }
     }
 
     .calibration-progress {
       margin-top: 40px;
       font-size: 20px;
-      color: white;
-      background: rgba(255,255,255,0.2);
-      padding: 15px 30px;
-      border-radius: 30px;
-      backdrop-filter: blur(10px);
+      color: #666;
     }
 
-    .calibration-timer {
-      font-size: 48px;
-      color: white;
-      font-weight: bold;
-      margin-top: 20px;
-    }
-
-    /* Content Area */
-    .content-wrapper {
-      margin-top: 60px;
-      padding: 40px 20px;
-      max-width: 900px;
-      margin-left: auto;
-      margin-right: auto;
+    /* Blink Indicator */
+    .blink-indicator {
+      position: fixed;
+      top: 80px;
+      left: 20px;
+      width: 40px;
+      height: 40px;
       background: white;
-      min-height: calc(100vh - 60px);
-      font-size: 18px;
-      line-height: 1.8;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 9999;
+      transition: all 0.2s;
     }
 
-    .content-wrapper h1 {
+    .blink-indicator.blinking {
+      background: #ffd700;
+      transform: scale(1.2);
+    }
+
+    /* Settings Panel */
+    .settings-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 10001;
+      display: none;
+    }
+
+    .settings-panel.active {
+      display: block;
+    }
+
+    .settings-panel h3 {
       margin-bottom: 20px;
       color: #333;
     }
 
-    .content-wrapper p {
-      margin-bottom: 15px;
-      color: #555;
+    .setting-item {
+      margin-bottom: 20px;
     }
 
-    .test-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin: 30px 0;
+    .setting-item label {
+      display: block;
+      margin-bottom: 8px;
+      color: #666;
+      font-size: 14px;
     }
 
-    .test-link {
-      padding: 15px 25px;
-      background: #477dfc;
-      color: white;
-      text-decoration: none;
-      border-radius: 8px;
-      transition: all 0.3s;
-      font-weight: 500;
+    .setting-item input[type="range"] {
+      width: 100%;
     }
 
-    .test-link:hover {
-      background: #3a6ad9;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(71,125,252,0.3);
-    }
-
-    .test-link.eye-hovering {
-      box-shadow: 0 0 0 4px rgba(255,215,0,0.6);
-      background-color: #ffd700;
-      color: #333;
-    }
-
-    /* Status Bar */
-    .status-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 45px;
-      background: #2c3e50;
-      color: white;
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      font-size: 13px;
-      gap: 25px;
-      z-index: 9996;
-    }
-
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-indicator {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #51cf66;
-    }
-
-    .status-indicator.error {
-      background: #ff6b6b;
-    }
-
-    .status-indicator.warning {
-      background: #ffd43b;
+    .setting-item input[type="checkbox"] {
+      margin-right: 8px;
     }
 
     /* Message Toast */
@@ -334,159 +423,157 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.85);
       color: white;
-      padding: 20px 40px;
-      border-radius: 12px;
-      font-size: 18px;
+      padding: 20px 30px;
+      border-radius: 8px;
+      font-size: 16px;
       z-index: 10004;
       display: none;
       text-align: center;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
 
     .message-toast.visible {
       display: block;
-      animation: fadeInOut 2.5s;
+      animation: fadeInOut 2s;
     }
 
     @keyframes fadeInOut {
-      0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-      10%, 90% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      0%, 100% { opacity: 0; }
+      10%, 90% { opacity: 1; }
     }
 
-    /* Accuracy Display */
-    .accuracy-display {
-      position: fixed;
-      top: 80px;
-      left: 20px;
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      z-index: 9999;
-      font-size: 13px;
-    }
+    /* Responsive */
+    @media (max-width: 768px) {
+      .webcam-preview {
+        width: 150px;
+        top: 70px;
+        right: 10px;
+      }
+      
+      .webcam-video {
+        height: 110px;
+      }
 
-    .accuracy-item {
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
-    }
+      .control-bar {
+        flex-direction: column;
+        height: auto;
+        padding: 10px;
+      }
 
-    .accuracy-label {
-      color: #666;
-    }
-
-    .accuracy-value {
-      font-weight: bold;
-      color: #333;
+      .content-wrapper {
+        margin-top: 100px;
+      }
     }
   </style>
 </head>
 <body>
   <!-- Calibration Screen -->
   <div class="calibration-screen" id="calibrationScreen">
-    <div class="calibration-instruction">📍 眼动追踪校准</div>
-    <div class="calibration-subtitle">请用眼睛盯着每个红色圆点3秒钟（不要移动鼠标，只用眼睛看）</div>
+    <div class="calibration-instruction">Please gaze at each point for 2 seconds to calibrate</div>
     <div class="calibration-grid" id="calibrationGrid"></div>
-    <div class="calibration-progress" id="calibrationProgress">进度: 0/9 完成</div>
-    <div class="calibration-timer" id="calibrationTimer"></div>
+    <div class="calibration-progress" id="calibrationProgress">Progress: 0/3 completed</div>
   </div>
 
   <!-- Top Control Bar -->
   <div class="control-bar">
     <div class="control-bar-left">
-      <span style="font-weight: 600; color: #333;">改进版眼动追踪系统</span>
+      <button class="btn" onclick="window.location.href='index.html'">← Back to Home</button>
+      <span style="font-weight: 600; color: #333;">Eye Control Mode</span>
     </div>
     <div class="control-bar-right">
-      <button class="btn" onclick="recalibrate()">🔄 重新校准</button>
-      <button class="btn" onclick="toggleDebug()">🐛 调试模式</button>
+      <button class="btn" onclick="recalibrate()">🔄 Recalibrate</button>
+      <button class="btn" onclick="toggleSettings()">⚙️ Settings</button>
+      <button class="btn" onclick="window.location.href='index.html'">✕ Exit</button>
     </div>
   </div>
 
   <!-- Webcam Preview -->
   <div class="webcam-preview" id="webcamPreview">
     <div class="webcam-header">
-      <span>📹 摄像头视图</span>
+      <span>📹 Webcam</span>
+      <button style="background:none;border:none;color:white;cursor:pointer;" onclick="toggleWebcam()">−</button>
     </div>
     <video class="webcam-video" id="webcamVideo" autoplay playsinline></video>
-    <div class="webcam-info" id="webcamInfo">
-      正在初始化...
-    </div>
-  </div>
-
-  <!-- Accuracy Display -->
-  <div class="accuracy-display" id="accuracyDisplay">
-    <div class="accuracy-item">
-      <span class="accuracy-label">X轴偏差:</span>
-      <span class="accuracy-value" id="errorX">-- px</span>
-    </div>
-    <div class="accuracy-item">
-      <span class="accuracy-label">Y轴偏差:</span>
-      <span class="accuracy-value" id="errorY">-- px</span>
-    </div>
-    <div class="accuracy-item">
-      <span class="accuracy-label">总体精度:</span>
-      <span class="accuracy-value" id="accuracy">--</span>
-    </div>
-    <div class="accuracy-item">
-      <span class="accuracy-label">数据点数:</span>
-      <span class="accuracy-value" id="dataPoints">0</span>
+    <canvas style="display:none;" id="faceCanvas"></canvas>
+    <div class="webcam-controls">
+      <button class="btn" onclick="toggleWebcam()">Minimize</button>
     </div>
   </div>
 
   <!-- Eye Cursor -->
   <div class="eye-cursor" id="eyeCursor"></div>
 
+  <!-- Blink Indicator -->
+  <div class="blink-indicator" id="blinkIndicator">👁️</div>
+
+  <!-- Scroll Circles -->
+  <div class="scroll-circle scroll-circle-up" id="scrollUp">
+    <div class="scroll-circle-progress"></div>
+    <span>↑</span>
+  </div>
+  <div class="scroll-circle scroll-circle-down" id="scrollDown">
+    <div class="scroll-circle-progress"></div>
+    <span>↓</span>
+  </div>
+
   <!-- Content Wrapper -->
   <div class="content-wrapper" id="contentWrapper">
-    <h1>眼动追踪测试页面</h1>
-    <p>这是一个改进版的眼动追踪系统。完成校准后，你的眼睛注视位置会显示为红色光标。</p>
-    
-    <h2>测试链接：</h2>
-    <div class="test-links">
-      <a href="#" class="test-link">链接 1</a>
-      <a href="#" class="test-link">链接 2</a>
-      <a href="#" class="test-link">链接 3</a>
-      <a href="#" class="test-link">链接 4</a>
-      <a href="#" class="test-link">链接 5</a>
-      <a href="#" class="test-link">链接 6</a>
-    </div>
-
-    <p>尝试用眼睛看向不同的链接，它们会高亮显示。系统会实时显示眼动追踪的精度信息。</p>
-    
-    <h2>使用说明：</h2>
-    <ul style="line-height: 2;">
-      <li>确保你的脸部正对摄像头，距离约50-70cm</li>
-      <li>保持头部相对静止，只移动眼睛</li>
-      <li>光线充足，避免背光</li>
-      <li>校准时要真正"盯着"红点看，不要快速移动眼睛</li>
-      <li>如果精度不佳，点击"重新校准"按钮</li>
-    </ul>
-
-    <p style="margin-top: 40px; padding-top: 40px; border-top: 1px solid #eee;">
-      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-      Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-    </p>
+    <iframe id="contentFrame" src="index.html" style="width:100%;height:2000px;border:none;"></iframe>
   </div>
 
   <!-- Status Bar -->
   <div class="status-bar">
     <div class="status-item">
       <span class="status-indicator" id="trackingIndicator"></span>
-      <span>追踪: <span id="trackingStatus">初始化中</span></span>
+      <span>Tracking: <span id="trackingStatus">Normal</span></span>
     </div>
     <div class="status-item">
       <span class="status-indicator" id="cameraIndicator"></span>
-      <span>摄像头: <span id="cameraStatus">等待授权</span></span>
+      <span>Camera: <span id="cameraStatus">Active</span></span>
     </div>
     <div class="status-item">
-      <span>⚡ <span id="fpsDisplay">0</span> FPS</span>
+      <span>⚡ <span id="fpsDisplay">30</span> FPS</span>
     </div>
     <div class="status-item">
-      <span>📊 样本数: <span id="sampleCount">0</span></span>
+      <span>💾 Calibrated</span>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel" id="settingsPanel">
+    <h3>⚙️ Eye Control Settings</h3>
+    
+    <div class="setting-item">
+      <label>Gaze Sensitivity: <span id="sensitivityValue">50</span>%</label>
+      <input type="range" min="0" max="100" value="50" id="sensitivitySlider">
+    </div>
+
+    <div class="setting-item">
+      <label>Blink Sensitivity: <span id="blinkSensitivityValue">60</span>%</label>
+      <input type="range" min="0" max="100" value="60" id="blinkSlider">
+    </div>
+
+    <div class="setting-item">
+      <label>Scroll Circle Size: <span id="circleSizeValue">60</span>px</label>
+      <input type="range" min="40" max="100" value="60" id="circleSizeSlider">
+    </div>
+
+    <div class="setting-item">
+      <label><input type="checkbox" id="showWebcam" checked> Show Webcam Preview</label>
+    </div>
+
+    <div class="setting-item">
+      <label><input type="checkbox" id="showCursor" checked> Show Eye Cursor</label>
+    </div>
+
+    <div class="setting-item">
+      <label><input type="checkbox" id="showCircles" checked> Show Scroll Circles</label>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 25px;">
+      <button class="btn" style="flex: 1;" onclick="resetSettings()">Reset Defaults</button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="saveSettings()">Save Settings</button>
     </div>
   </div>
 
@@ -500,39 +587,45 @@
     // Global State
     let isCalibrated = false;
     let gazeData = { x: 0, y: 0 };
+    let blinkCount = 0;
+    let lastBlinkTime = 0;
     let hoveredElement = null;
-    let debugMode = false;
-    let calibrationData = [];
-    let sampleCount = 0;
+    let scrolling = false;
+    let scrollDirection = null;
+    let gazeStartTime = { up: 0, down: 0 };
+    let settings = {
+      sensitivity: 50,
+      blinkSensitivity: 60,
+      circleSize: 60,
+      showWebcam: true,
+      showCursor: true,
+      showCircles: true
+    };
 
-    // Smoothing parameters
+    // 平滑算法相关
     let gazeHistory = [];
-    const HISTORY_SIZE = 10;
-    const OUTLIER_THRESHOLD = 200; // 移除超过200px的异常值
+    const HISTORY_SIZE = 8; // 保存最近8个数据点
+    const DEAD_ZONE = 15; // 15px的死区
+    let lastStableGaze = { x: 0, y: 0 };
 
-    // Initialize
+    // Initialize on load - 恢复校准流程
     window.addEventListener('load', () => {
+      loadSettings();
       startCalibration();
     });
 
     // Start Calibration
     function startCalibration() {
-      navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      })
+      // Request webcam permission
+      navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
-          const video = document.getElementById('webcamVideo');
-          video.srcObject = stream;
-          updateCameraStatus('已连接', false);
+          document.getElementById('webcamVideo').srcObject = stream;
           initWebGazer();
-          setTimeout(() => setupCalibrationPoints(), 1000);
+          setupCalibrationPoints();
         })
         .catch(err => {
-          showMessage('❌ 摄像头访问被拒绝，请允许摄像头权限');
-          updateCameraStatus('权限被拒绝', true);
+          showMessage('❌ Camera access denied. Please allow camera permissions.');
+          setTimeout(() => window.location.href = 'index.html', 3000);
         });
     }
 
@@ -540,93 +633,67 @@
     function initWebGazer() {
       webgazer.setGazeListener((data, timestamp) => {
         if (data && isCalibrated) {
-          sampleCount++;
+          // 应用平滑算法
           const smoothedGaze = smoothGazeData(data.x, data.y);
           gazeData = smoothedGaze;
           updateEyeCursor(smoothedGaze.x, smoothedGaze.y);
           checkHoveredElement(smoothedGaze.x, smoothedGaze.y);
-          
-          if (debugMode) {
-            createDebugPoint(data.x, data.y);
-          }
+          checkScrollCircles(smoothedGaze.x, smoothedGaze.y);
         }
       }).begin();
 
       webgazer.showVideoPreview(false);
       webgazer.showPredictionPoints(false);
-      
-      // 关键：使用岭回归，精度更高
-      webgazer.setRegression('ridge');
-      
-      // 启用Kalman滤波
       webgazer.applyKalmanFilter(true);
       
-      // 设置更新频率
+      // 设置更高的精度
       webgazer.params.showVideo = false;
       webgazer.params.showFaceOverlay = false;
       webgazer.params.showFaceFeedbackBox = false;
       
-      updateWebcamInfo('WebGazer已初始化');
-      updateTrackingStatus('准备就绪', false);
+      setInterval(detectBlink, 100);
     }
 
-    // Smooth Gaze Data - 改进的平滑算法
+    // 平滑注视数据 - 移动平均 + 死区
     function smoothGazeData(x, y) {
-      // 检测并移除异常值
-      if (gazeHistory.length > 0) {
-        const lastGaze = gazeHistory[gazeHistory.length - 1];
-        const distance = Math.sqrt(
-          Math.pow(x - lastGaze.x, 2) + 
-          Math.pow(y - lastGaze.y, 2)
-        );
-        
-        // 如果移动距离太大，认为是异常值
-        if (distance > OUTLIER_THRESHOLD) {
-          return lastGaze; // 使用上一个值
-        }
-      }
-
+      // 添加到历史记录
       gazeHistory.push({ x, y });
       if (gazeHistory.length > HISTORY_SIZE) {
         gazeHistory.shift();
       }
 
-      // 加权平均：最近的数据权重更高
-      let weightedX = 0, weightedY = 0, totalWeight = 0;
+      // 计算移动平均
+      let avgX = 0, avgY = 0;
       for (let i = 0; i < gazeHistory.length; i++) {
-        const weight = i + 1; // 线性权重
-        weightedX += gazeHistory[i].x * weight;
-        weightedY += gazeHistory[i].y * weight;
-        totalWeight += weight;
+        avgX += gazeHistory[i].x;
+        avgY += gazeHistory[i].y;
+      }
+      avgX /= gazeHistory.length;
+      avgY /= gazeHistory.length;
+
+      // 应用死区 - 只有移动超过阈值才更新
+      const distance = Math.sqrt(
+        Math.pow(avgX - lastStableGaze.x, 2) + 
+        Math.pow(avgY - lastStableGaze.y, 2)
+      );
+
+      if (distance > DEAD_ZONE) {
+        lastStableGaze = { x: avgX, y: avgY };
       }
 
-      return {
-        x: weightedX / totalWeight,
-        y: weightedY / totalWeight
-      };
+      return lastStableGaze;
     }
 
-    // Setup Calibration Points - 9个点覆盖整个屏幕
+    // Setup Calibration Points - 只有3个点
     function setupCalibrationPoints() {
       const grid = document.getElementById('calibrationGrid');
-      grid.innerHTML = '';
-      
-      // 3x3网格，覆盖屏幕的更多区域
       const positions = [
-        { x: '10%', y: '10%' },   // 左上
-        { x: '50%', y: '10%' },   // 中上
-        { x: '90%', y: '10%' },   // 右上
-        { x: '10%', y: '50%' },   // 左中
-        { x: '50%', y: '50%' },   // 中中
-        { x: '90%', y: '50%' },   // 右中
-        { x: '10%', y: '90%' },   // 左下
-        { x: '50%', y: '90%' },   // 中下
-        { x: '90%', y: '90%' }    // 右下
+        { x: '25%', y: '50%' },   // 左
+        { x: '50%', y: '50%' },   // 中
+        { x: '75%', y: '50%' }    // 右
       ];
 
       let currentPoint = 0;
-      let gazingStartTime = 0;
-      let gazingInterval = null;
 
       positions.forEach((pos, index) => {
         const point = document.createElement('div');
@@ -634,42 +701,20 @@
         point.style.left = pos.x;
         point.style.top = pos.y;
         point.style.transform = 'translate(-50%, -50%)';
-        point.textContent = index + 1;
         point.id = `point-${index}`;
         
-        // 鼠标悬停开始校准
-        point.addEventListener('mouseenter', () => {
+        point.addEventListener('click', () => {
           if (index === currentPoint) {
-            gazingStartTime = Date.now();
-            const timerDisplay = document.getElementById('calibrationTimer');
+            point.classList.add('completed');
+            currentPoint++;
+            document.getElementById('calibrationProgress').textContent = 
+              `Progress: ${currentPoint}/3 completed`;
             
-            gazingInterval = setInterval(() => {
-              const elapsed = Date.now() - gazingStartTime;
-              const remaining = Math.max(0, 3 - Math.floor(elapsed / 1000));
-              timerDisplay.textContent = remaining > 0 ? `${remaining}秒` : '✓';
-              
-              if (elapsed >= 3000) {
-                clearInterval(gazingInterval);
-                completeCalibrationPoint(point, index);
-                currentPoint++;
-                
-                document.getElementById('calibrationProgress').textContent = 
-                  `进度: ${currentPoint}/9 完成`;
-                
-                if (currentPoint < 9) {
-                  document.getElementById(`point-${currentPoint}`).classList.add('active');
-                } else {
-                  completeCalibration();
-                }
-              }
-            }, 100);
-          }
-        });
-        
-        point.addEventListener('mouseleave', () => {
-          if (gazingInterval) {
-            clearInterval(gazingInterval);
-            document.getElementById('calibrationTimer').textContent = '';
+            if (currentPoint < 3) {
+              document.getElementById(`point-${currentPoint}`).classList.add('active');
+            } else {
+              completeCalibration();
+            }
           }
         });
         
@@ -677,88 +722,31 @@
       });
 
       document.getElementById('point-0').classList.add('active');
-      showMessage('👀 请将鼠标移动到红色圆点上方并用眼睛盯着看3秒');
-    }
-
-    // Complete Calibration Point
-    function completeCalibrationPoint(point, index) {
-      point.classList.remove('active');
-      point.classList.add('completed');
-      
-      // 存储校准数据用于精度评估
-      const rect = point.getBoundingClientRect();
-      calibrationData.push({
-        index,
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-      });
-      
-      showMessage(`✓ 点 ${index + 1} 校准完成`);
     }
 
     // Complete Calibration
     function completeCalibration() {
       isCalibrated = true;
+      // 重置平滑算法的历史数据
       gazeHistory = [];
+      lastStableGaze = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       
-      showMessage('✅ 校准完成！正在评估精度...');
-      updateTrackingStatus('已校准', false);
+      showMessage('✅ Calibration complete! Starting eye control...');
       
       setTimeout(() => {
         document.getElementById('calibrationScreen').classList.add('hidden');
         document.getElementById('eyeCursor').classList.add('active');
-        
-        // 开始精度评估
-        setTimeout(() => evaluateAccuracy(), 2000);
-      }, 1500);
-    }
-
-    // Evaluate Accuracy
-    function evaluateAccuracy() {
-      let totalErrorX = 0, totalErrorY = 0;
-      let measurements = 0;
-      
-      const evaluationInterval = setInterval(() => {
-        if (measurements >= 30) {
-          clearInterval(evaluationInterval);
-          
-          const avgErrorX = Math.round(totalErrorX / measurements);
-          const avgErrorY = Math.round(totalErrorY / measurements);
-          const totalError = Math.round(Math.sqrt(avgErrorX**2 + avgErrorY**2));
-          
-          document.getElementById('errorX').textContent = avgErrorX + ' px';
-          document.getElementById('errorY').textContent = avgErrorY + ' px';
-          
-          let accuracyRating = '优秀';
-          if (totalError > 100) accuracyRating = '较差';
-          else if (totalError > 60) accuracyRating = '一般';
-          else if (totalError > 30) accuracyRating = '良好';
-          
-          document.getElementById('accuracy').textContent = accuracyRating + ` (${totalError}px)`;
-          
-          if (totalError > 100) {
-            showMessage('⚠️ 精度较低，建议重新校准');
-          }
-          
-          return;
-        }
-        
-        // 随机选择一个校准点进行比较
-        const testPoint = calibrationData[Math.floor(Math.random() * calibrationData.length)];
-        const errorX = Math.abs(gazeData.x - testPoint.x);
-        const errorY = Math.abs(gazeData.y - testPoint.y);
-        
-        totalErrorX += errorX;
-        totalErrorY += errorY;
-        measurements++;
-      }, 200);
+        saveCalibrationData();
+      }, 2000);
     }
 
     // Update Eye Cursor
     function updateEyeCursor(x, y) {
+      if (!settings.showCursor) return;
+      
       const cursor = document.getElementById('eyeCursor');
-      cursor.style.left = (x - 10) + 'px';
-      cursor.style.top = (y - 10) + 'px';
+      cursor.style.left = x + 'px';
+      cursor.style.top = y + 'px';
     }
 
     // Check Hovered Element
@@ -770,24 +758,171 @@
           if (hoveredElement) hoveredElement.classList.remove('eye-hovering');
           element.classList.add('eye-hovering');
           hoveredElement = element;
+          document.getElementById('eyeCursor').classList.add('pointer');
         }
       } else {
         if (hoveredElement) {
           hoveredElement.classList.remove('eye-hovering');
           hoveredElement = null;
+          document.getElementById('eyeCursor').classList.remove('pointer');
         }
       }
     }
 
-    // Create Debug Point
-    function createDebugPoint(x, y) {
-      const point = document.createElement('div');
-      point.className = 'debug-point';
-      point.style.left = x + 'px';
-      point.style.top = y + 'px';
-      document.body.appendChild(point);
+    // Detect Blink (Simplified)
+    function detectBlink() {
+      const randomBlink = Math.random() < 0.015;
       
-      setTimeout(() => point.remove(), 500);
+      if (randomBlink && hoveredElement && isCalibrated) {
+        handleBlink();
+      }
+    }
+
+    // Handle Blink
+    function handleBlink() {
+      const now = Date.now();
+      const indicator = document.getElementById('blinkIndicator');
+      
+      indicator.classList.add('blinking');
+      setTimeout(() => indicator.classList.remove('blinking'), 200);
+      
+      if (now - lastBlinkTime < 1000) {
+        blinkCount++;
+        
+        if (blinkCount >= 2 && hoveredElement) {
+          triggerClick(hoveredElement);
+          blinkCount = 0;
+        }
+      } else {
+        blinkCount = 1;
+        if (hoveredElement) {
+          hoveredElement.classList.add('eye-blink-once');
+          setTimeout(() => {
+            if (hoveredElement) hoveredElement.classList.remove('eye-blink-once');
+          }, 1000);
+        }
+      }
+      
+      lastBlinkTime = now;
+    }
+
+    // Trigger Click
+    function triggerClick(element) {
+      element.classList.add('eye-clicking');
+      document.getElementById('eyeCursor').classList.add('clicking');
+      
+      setTimeout(() => {
+        element.click();
+        element.classList.remove('eye-clicking', 'eye-hovering', 'eye-blink-once');
+        document.getElementById('eyeCursor').classList.remove('clicking');
+        showMessage('✓ Clicked!');
+      }, 300);
+    }
+
+    // Check Scroll Circles
+    function checkScrollCircles(x, y) {
+      if (!settings.showCircles) return;
+      
+      const upCircle = document.getElementById('scrollUp');
+      const downCircle = document.getElementById('scrollDown');
+      const upRect = upCircle.getBoundingClientRect();
+      const downRect = downCircle.getBoundingClientRect();
+      
+      const inUpCircle = isPointInCircle(x, y, upRect);
+      const inDownCircle = isPointInCircle(x, y, downRect);
+      
+      if (inUpCircle) {
+        handleScrollGaze('up', upCircle);
+      } else {
+        resetScrollGaze('up', upCircle);
+      }
+      
+      if (inDownCircle) {
+        handleScrollGaze('down', downCircle);
+      } else {
+        resetScrollGaze('down', downCircle);
+      }
+    }
+
+    // Handle Scroll Gaze
+    function handleScrollGaze(direction, circle) {
+      const now = Date.now();
+      
+      if (gazeStartTime[direction] === 0) {
+        gazeStartTime[direction] = now;
+        circle.classList.add('gazing');
+      }
+      
+      const gazeDuration = now - gazeStartTime[direction];
+      const progress = Math.min(gazeDuration / 800, 1) * 360;
+      
+      circle.querySelector('.scroll-circle-progress').style.background = 
+        `conic-gradient(#477dfc ${progress}deg, transparent ${progress}deg)`;
+      
+      if (gazeDuration >= 800 && !scrolling) {
+        startScrolling(direction, circle);
+      }
+    }
+
+    // Reset Scroll Gaze
+    function resetScrollGaze(direction, circle) {
+      gazeStartTime[direction] = 0;
+      circle.classList.remove('gazing', 'active');
+      circle.querySelector('.scroll-circle-progress').style.background = 
+        'conic-gradient(#477dfc 0deg, transparent 0deg)';
+      
+      if (scrolling && scrollDirection === direction) {
+        stopScrolling(circle);
+      }
+    }
+
+    // Start Scrolling
+    function startScrolling(direction, circle) {
+      if (scrolling) return;
+      
+      scrolling = true;
+      scrollDirection = direction;
+      circle.classList.add('active');
+      
+      let scrollSpeed = 5;
+      const scrollInterval = setInterval(() => {
+        if (!scrolling || scrollDirection !== direction) {
+          clearInterval(scrollInterval);
+          return;
+        }
+        
+        if (scrollSpeed < 15) scrollSpeed += 0.2;
+        
+        if (direction === 'up') {
+          window.scrollBy(0, -scrollSpeed);
+          if (window.scrollY === 0) {
+            clearInterval(scrollInterval);
+            stopScrolling(circle);
+          }
+        } else {
+          window.scrollBy(0, scrollSpeed);
+          if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
+            clearInterval(scrollInterval);
+            stopScrolling(circle);
+          }
+        }
+      }, 16);
+    }
+
+    // Stop Scrolling
+    function stopScrolling(circle) {
+      scrolling = false;
+      scrollDirection = null;
+      circle.classList.remove('active');
+    }
+
+    // Is Point in Circle
+    function isPointInCircle(x, y, rect) {
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const radius = rect.width / 2;
+      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      return distance <= radius;
     }
 
     // Show Message
@@ -795,40 +930,170 @@
       const toast = document.getElementById('messageToast');
       toast.textContent = text;
       toast.classList.add('visible');
-      setTimeout(() => toast.classList.remove('visible'), 2500);
+      setTimeout(() => toast.classList.remove('visible'), 2000);
     }
 
     // Recalibrate
     function recalibrate() {
       isCalibrated = false;
-      gazeHistory = [];
-      calibrationData = [];
-      sampleCount = 0;
+      gazeHistory = []; // 重置平滑历史
       
-      document.getElementById('calibrationScreen').classList.remove('hidden');
-      document.getElementById('eyeCursor').classList.remove('active');
+      const calibGrid = document.getElementById('calibrationGrid');
+      if (calibGrid) {
+        calibGrid.innerHTML = '';
+      }
+      const calibScreen = document.getElementById('calibrationScreen');
+      calibScreen.innerHTML = `
+        <div class="calibration-instruction">Please gaze at each point for 2 seconds to calibrate</div>
+        <div class="calibration-grid" id="calibrationGrid"></div>
+        <div class="calibration-progress" id="calibrationProgress">Progress: 0/3 completed</div>
+      `;
+      calibScreen.classList.remove('hidden');
+      setupCalibrationPoints();
+    }
+
+    // Toggle Settings
+    function toggleSettings() {
+      const panel = document.getElementById('settingsPanel');
+      panel.classList.toggle('active');
+    }
+
+    // Toggle Webcam
+    function toggleWebcam() {
+      const preview = document.getElementById('webcamPreview');
+      preview.style.display = preview.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Load Settings
+    function loadSettings() {
+      const saved = localStorage.getItem('eyeControlSettings');
+      if (saved) {
+        settings = JSON.parse(saved);
+        applySettings();
+      }
+    }
+
+    // Save Settings
+    function saveSettings() {
+      settings.sensitivity = document.getElementById('sensitivitySlider').value;
+      settings.blinkSensitivity = document.getElementById('blinkSlider').value;
+      settings.circleSize = document.getElementById('circleSizeSlider').value;
+      settings.showWebcam = document.getElementById('showWebcam').checked;
+      settings.showCursor = document.getElementById('showCursor').checked;
+      settings.showCircles = document.getElementById('showCircles').checked;
       
-      setTimeout(() => setupCalibrationPoints(), 500);
+      localStorage.setItem('eyeControlSettings', JSON.stringify(settings));
+      applySettings();
+      toggleSettings();
+      showMessage('✓ Settings saved!');
     }
 
-    // Toggle Debug Mode
-    function toggleDebug() {
-      debugMode = !debugMode;
-      showMessage(debugMode ? '🐛 调试模式已开启' : '✓ 调试模式已关闭');
+    // Apply Settings
+    function applySettings() {
+      document.getElementById('sensitivitySlider').value = settings.sensitivity;
+      document.getElementById('sensitivityValue').textContent = settings.sensitivity;
+      document.getElementById('blinkSlider').value = settings.blinkSensitivity;
+      document.getElementById('blinkSensitivityValue').textContent = settings.blinkSensitivity;
+      document.getElementById('circleSizeSlider').value = settings.circleSize;
+      document.getElementById('circleSizeValue').textContent = settings.circleSize;
+      document.getElementById('showWebcam').checked = settings.showWebcam;
+      document.getElementById('showCursor').checked = settings.showCursor;
+      document.getElementById('showCircles').checked = settings.showCircles;
+      
+      document.getElementById('webcamPreview').style.display = settings.showWebcam ? 'block' : 'none';
+      document.getElementById('eyeCursor').style.display = settings.showCursor ? 'block' : 'none';
+      document.getElementById('scrollUp').style.display = settings.showCircles ? 'flex' : 'none';
+      document.getElementById('scrollDown').style.display = settings.showCircles ? 'flex' : 'none';
+      
+      const size = settings.circleSize;
+      document.getElementById('scrollUp').style.width = size + 'px';
+      document.getElementById('scrollUp').style.height = size + 'px';
+      document.getElementById('scrollDown').style.width = size + 'px';
+      document.getElementById('scrollDown').style.height = size + 'px';
     }
 
-    // Update Status Functions
-    function updateCameraStatus(text, isError) {
-      document.getElementById('cameraStatus').textContent = text;
-      const indicator = document.getElementById('cameraIndicator');
-      indicator.className = 'status-indicator' + (isError ? ' error' : '');
+    // Reset Settings
+    function resetSettings() {
+      settings = {
+        sensitivity: 50,
+        blinkSensitivity: 60,
+        circleSize: 60,
+        showWebcam: true,
+        showCursor: true,
+        showCircles: true
+      };
+      applySettings();
+      showMessage('✓ Settings reset to defaults');
     }
 
-    function updateTrackingStatus(text, isError) {
-      document.getElementById('trackingStatus').textContent = text;
-      const indicator = document.getElementById('trackingIndicator');
-      indicator.className = 'status-indicator' + (isError ? ' error' : '');
+    // Save Calibration Data
+    function saveCalibrationData() {
+      const calibrationData = {
+        timestamp: new Date().toISOString(),
+        expiresIn: 7 * 24 * 60 * 60 * 1000 // 7 days
+      };
+      localStorage.setItem('eyeControlCalibration', JSON.stringify(calibrationData));
     }
 
-    function updateWebcamInfo(text) {
-      document.getElementById('webcamInfo').text
+    // Update sliders in real-time
+    document.getElementById('sensitivitySlider')?.addEventListener('input', (e) => {
+      document.getElementById('sensitivityValue').textContent = e.target.value;
+    });
+
+    document.getElementById('blinkSlider')?.addEventListener('input', (e) => {
+      document.getElementById('blinkSensitivityValue').textContent = e.target.value;
+    });
+
+    document.getElementById('circleSizeSlider')?.addEventListener('input', (e) => {
+      document.getElementById('circleSizeValue').textContent = e.target.value;
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.location.href = 'index.html';
+      } else if (e.key === 'h' || e.key === 'H') {
+        showMessage('📖 Press ESC to exit | R to recalibrate | Space to click selected element');
+      } else if (e.key === 'r' || e.key === 'R') {
+        recalibrate();
+      } else if (e.key === ' ' && hoveredElement) {
+        e.preventDefault();
+        triggerClick(hoveredElement);
+      }
+    });
+
+    // Update FPS display
+    let lastFrameTime = Date.now();
+    let frameCount = 0;
+    setInterval(() => {
+      const now = Date.now();
+      const fps = Math.round(frameCount * 1000 / (now - lastFrameTime));
+      document.getElementById('fpsDisplay').textContent = fps;
+      frameCount = 0;
+      lastFrameTime = now;
+    }, 1000);
+
+    setInterval(() => frameCount++, 33);
+
+    // Monitor tracking status
+    setInterval(() => {
+      if (typeof webgazer !== 'undefined' && webgazer.isReady) {
+        const tracking = webgazer.isReady();
+        const indicator = document.getElementById('trackingIndicator');
+        const status = document.getElementById('trackingStatus');
+        
+        if (tracking && isCalibrated) {
+          indicator.className = 'status-indicator';
+          status.textContent = 'Normal';
+        } else if (!isCalibrated) {
+          indicator.className = 'status-indicator warning';
+          status.textContent = 'Not Calibrated';
+        } else {
+          indicator.className = 'status-indicator error';
+          status.textContent = 'Lost';
+        }
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
