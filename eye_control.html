@@ -287,14 +287,14 @@
       bottom: 0;
       background: white;
       z-index: 10002;
-      display: none;
+      display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
     }
 
-    .calibration-screen.active {
-      display: flex;
+    .calibration-screen.hidden {
+      display: none;
     }
 
     .calibration-instruction {
@@ -602,26 +602,17 @@
       showCircles: true
     };
 
-    // Initialize on load - 直接进入页面，不校准
+    // 平滑算法相关
+    let gazeHistory = [];
+    const HISTORY_SIZE = 8; // 保存最近8个数据点
+    const DEAD_ZONE = 15; // 15px的死区
+    let lastStableGaze = { x: 0, y: 0 };
+
+    // Initialize on load - 恢复校准流程
     window.addEventListener('load', () => {
       loadSettings();
-      initWithoutCalibration();
+      startCalibration();
     });
-
-    // 不校准直接初始化
-    function initWithoutCalibration() {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          document.getElementById('webcamVideo').srcObject = stream;
-          initWebGazer();
-          // 直接标记为已校准
-          isCalibrated = true;
-          document.getElementById('eyeCursor').classList.add('active');
-        })
-        .catch(err => {
-          showMessage('❌ 摄像头访问被拒绝，请允许摄像头权限。');
-        });
-    }
 
     // Start Calibration
     function startCalibration() {
@@ -642,10 +633,12 @@
     function initWebGazer() {
       webgazer.setGazeListener((data, timestamp) => {
         if (data && isCalibrated) {
-          gazeData = { x: data.x, y: data.y };
-          updateEyeCursor(data.x, data.y);
-          checkHoveredElement(data.x, data.y);
-          checkScrollCircles(data.x, data.y);
+          // 应用平滑算法
+          const smoothedGaze = smoothGazeData(data.x, data.y);
+          gazeData = smoothedGaze;
+          updateEyeCursor(smoothedGaze.x, smoothedGaze.y);
+          checkHoveredElement(smoothedGaze.x, smoothedGaze.y);
+          checkScrollCircles(smoothedGaze.x, smoothedGaze.y);
         }
       }).begin();
 
@@ -653,7 +646,42 @@
       webgazer.showPredictionPoints(false);
       webgazer.applyKalmanFilter(true);
       
+      // 设置更高的精度
+      webgazer.params.showVideo = false;
+      webgazer.params.showFaceOverlay = false;
+      webgazer.params.showFaceFeedbackBox = false;
+      
       setInterval(detectBlink, 100);
+    }
+
+    // 平滑注视数据 - 移动平均 + 死区
+    function smoothGazeData(x, y) {
+      // 添加到历史记录
+      gazeHistory.push({ x, y });
+      if (gazeHistory.length > HISTORY_SIZE) {
+        gazeHistory.shift();
+      }
+
+      // 计算移动平均
+      let avgX = 0, avgY = 0;
+      for (let i = 0; i < gazeHistory.length; i++) {
+        avgX += gazeHistory[i].x;
+        avgY += gazeHistory[i].y;
+      }
+      avgX /= gazeHistory.length;
+      avgY /= gazeHistory.length;
+
+      // 应用死区 - 只有移动超过阈值才更新
+      const distance = Math.sqrt(
+        Math.pow(avgX - lastStableGaze.x, 2) + 
+        Math.pow(avgY - lastStableGaze.y, 2)
+      );
+
+      if (distance > DEAD_ZONE) {
+        lastStableGaze = { x: avgX, y: avgY };
+      }
+
+      return lastStableGaze;
     }
 
     // Setup Calibration Points - 只有3个点
@@ -699,10 +727,14 @@
     // Complete Calibration
     function completeCalibration() {
       isCalibrated = true;
+      // 重置平滑算法的历史数据
+      gazeHistory = [];
+      lastStableGaze = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      
       showMessage('✅ 校准完成！开始眼动控制...');
       
       setTimeout(() => {
-        document.getElementById('calibrationScreen').classList.remove('active');
+        document.getElementById('calibrationScreen').classList.add('hidden');
         document.getElementById('eyeCursor').classList.add('active');
         saveCalibrationData();
       }, 2000);
@@ -904,6 +936,8 @@
     // Recalibrate
     function recalibrate() {
       isCalibrated = false;
+      gazeHistory = []; // 重置平滑历史
+      
       const calibGrid = document.getElementById('calibrationGrid');
       if (calibGrid) {
         calibGrid.innerHTML = '';
@@ -914,7 +948,7 @@
         <div class="calibration-grid" id="calibrationGrid"></div>
         <div class="calibration-progress" id="calibrationProgress">进度: 0/3 完成</div>
       `;
-      calibScreen.classList.add('active');
+      calibScreen.classList.remove('hidden');
       setupCalibrationPoints();
     }
 
