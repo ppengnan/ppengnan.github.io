@@ -470,34 +470,34 @@
 <body>
   <!-- Calibration Screen -->
   <div class="calibration-screen" id="calibrationScreen">
-    <div class="calibration-instruction">请注视每个点2秒进行校准</div>
+    <div class="calibration-instruction">Please gaze at each point for 2 seconds to calibrate</div>
     <div class="calibration-grid" id="calibrationGrid"></div>
-    <div class="calibration-progress" id="calibrationProgress">进度: 0/3 完成</div>
+    <div class="calibration-progress" id="calibrationProgress">Progress: 0/3 completed</div>
   </div>
 
   <!-- Top Control Bar -->
   <div class="control-bar">
     <div class="control-bar-left">
-      <button class="btn" onclick="window.location.href='index.html'">← 返回首页</button>
-      <span style="font-weight: 600; color: #333;">眼动控制模式</span>
+      <button class="btn" onclick="window.location.href='index.html'">← Back to Home</button>
+      <span style="font-weight: 600; color: #333;">Eye Control Mode</span>
     </div>
     <div class="control-bar-right">
-      <button class="btn" onclick="recalibrate()">🔄 重新校准</button>
-      <button class="btn" onclick="toggleSettings()">⚙️ 设置</button>
-      <button class="btn" onclick="window.location.href='index.html'">✕ 退出</button>
+      <button class="btn" onclick="recalibrate()">🔄 Recalibrate</button>
+      <button class="btn" onclick="toggleSettings()">⚙️ Settings</button>
+      <button class="btn" onclick="window.location.href='index.html'">✕ Exit</button>
     </div>
   </div>
 
   <!-- Webcam Preview -->
   <div class="webcam-preview" id="webcamPreview">
     <div class="webcam-header">
-      <span>📹 摄像头</span>
+      <span>📹 Webcam</span>
       <button style="background:none;border:none;color:white;cursor:pointer;" onclick="toggleWebcam()">−</button>
     </div>
     <video class="webcam-video" id="webcamVideo" autoplay playsinline></video>
     <canvas style="display:none;" id="faceCanvas"></canvas>
     <div class="webcam-controls">
-      <button class="btn" onclick="toggleWebcam()">最小化</button>
+      <button class="btn" onclick="toggleWebcam()">Minimize</button>
     </div>
   </div>
 
@@ -526,54 +526,54 @@
   <div class="status-bar">
     <div class="status-item">
       <span class="status-indicator" id="trackingIndicator"></span>
-      <span>追踪: <span id="trackingStatus">正常</span></span>
+      <span>Tracking: <span id="trackingStatus">Normal</span></span>
     </div>
     <div class="status-item">
       <span class="status-indicator" id="cameraIndicator"></span>
-      <span>摄像头: <span id="cameraStatus">激活</span></span>
+      <span>Camera: <span id="cameraStatus">Active</span></span>
     </div>
     <div class="status-item">
       <span>⚡ <span id="fpsDisplay">30</span> FPS</span>
     </div>
     <div class="status-item">
-      <span>💾 已校准</span>
+      <span>💾 Calibrated</span>
     </div>
   </div>
 
   <!-- Settings Panel -->
   <div class="settings-panel" id="settingsPanel">
-    <h3>⚙️ 眼动控制设置</h3>
+    <h3>⚙️ Eye Control Settings</h3>
     
     <div class="setting-item">
-      <label>注视灵敏度: <span id="sensitivityValue">50</span>%</label>
+      <label>Gaze Sensitivity: <span id="sensitivityValue">50</span>%</label>
       <input type="range" min="0" max="100" value="50" id="sensitivitySlider">
     </div>
 
     <div class="setting-item">
-      <label>眨眼灵敏度: <span id="blinkSensitivityValue">60</span>%</label>
+      <label>Blink Sensitivity: <span id="blinkSensitivityValue">60</span>%</label>
       <input type="range" min="0" max="100" value="60" id="blinkSlider">
     </div>
 
     <div class="setting-item">
-      <label>滚动圈大小: <span id="circleSizeValue">60</span>px</label>
+      <label>Scroll Circle Size: <span id="circleSizeValue">60</span>px</label>
       <input type="range" min="40" max="100" value="60" id="circleSizeSlider">
     </div>
 
     <div class="setting-item">
-      <label><input type="checkbox" id="showWebcam" checked> 显示摄像头预览</label>
+      <label><input type="checkbox" id="showWebcam" checked> Show Webcam Preview</label>
     </div>
 
     <div class="setting-item">
-      <label><input type="checkbox" id="showCursor" checked> 显示眼动光标</label>
+      <label><input type="checkbox" id="showCursor" checked> Show Eye Cursor</label>
     </div>
 
     <div class="setting-item">
-      <label><input type="checkbox" id="showCircles" checked> 显示滚动圈</label>
+      <label><input type="checkbox" id="showCircles" checked> Show Scroll Circles</label>
     </div>
 
     <div style="display: flex; gap: 10px; margin-top: 25px;">
-      <button class="btn" style="flex: 1;" onclick="resetSettings()">恢复默认</button>
-      <button class="btn btn-primary" style="flex: 1;" onclick="saveSettings()">保存设置</button>
+      <button class="btn" style="flex: 1;" onclick="resetSettings()">Reset Defaults</button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="saveSettings()">Save Settings</button>
     </div>
   </div>
 
@@ -624,7 +624,7 @@
           setupCalibrationPoints();
         })
         .catch(err => {
-          showMessage('❌ 摄像头访问被拒绝，请允许摄像头权限。');
+          showMessage('❌ Camera access denied. Please allow camera permissions.');
           setTimeout(() => window.location.href = 'index.html', 3000);
         });
     }
@@ -708,7 +708,7 @@
             point.classList.add('completed');
             currentPoint++;
             document.getElementById('calibrationProgress').textContent = 
-              `进度: ${currentPoint}/3 完成`;
+              `Progress: ${currentPoint}/3 completed`;
             
             if (currentPoint < 3) {
               document.getElementById(`point-${currentPoint}`).classList.add('active');
@@ -731,7 +731,7 @@
       gazeHistory = [];
       lastStableGaze = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       
-      showMessage('✅ 校准完成！开始眼动控制...');
+      showMessage('✅ Calibration complete! Starting eye control...');
       
       setTimeout(() => {
         document.getElementById('calibrationScreen').classList.add('hidden');
@@ -815,7 +815,7 @@
         element.click();
         element.classList.remove('eye-clicking', 'eye-hovering', 'eye-blink-once');
         document.getElementById('eyeCursor').classList.remove('clicking');
-        showMessage('✓ 已点击！');
+        showMessage('✓ Clicked!');
       }, 300);
     }
 
@@ -944,9 +944,9 @@
       }
       const calibScreen = document.getElementById('calibrationScreen');
       calibScreen.innerHTML = `
-        <div class="calibration-instruction">请注视每个点2秒进行校准</div>
+        <div class="calibration-instruction">Please gaze at each point for 2 seconds to calibrate</div>
         <div class="calibration-grid" id="calibrationGrid"></div>
-        <div class="calibration-progress" id="calibrationProgress">进度: 0/3 完成</div>
+        <div class="calibration-progress" id="calibrationProgress">Progress: 0/3 completed</div>
       `;
       calibScreen.classList.remove('hidden');
       setupCalibrationPoints();
@@ -985,7 +985,7 @@
       localStorage.setItem('eyeControlSettings', JSON.stringify(settings));
       applySettings();
       toggleSettings();
-      showMessage('✓ 设置已保存！');
+      showMessage('✓ Settings saved!');
     }
 
     // Apply Settings
@@ -1023,7 +1023,7 @@
         showCircles: true
       };
       applySettings();
-      showMessage('✓ 已恢复默认设置');
+      showMessage('✓ Settings reset to defaults');
     }
 
     // Save Calibration Data
@@ -1053,7 +1053,7 @@
       if (e.key === 'Escape') {
         window.location.href = 'index.html';
       } else if (e.key === 'h' || e.key === 'H') {
-        showMessage('📖 按 ESC 退出 | R 重新校准 | 空格点击选中元素');
+        showMessage('📖 Press ESC to exit | R to recalibrate | Space to click selected element');
       } else if (e.key === 'r' || e.key === 'R') {
         recalibrate();
       } else if (e.key === ' ' && hoveredElement) {
@@ -1084,13 +1084,13 @@
         
         if (tracking && isCalibrated) {
           indicator.className = 'status-indicator';
-          status.textContent = '正常';
+          status.textContent = 'Normal';
         } else if (!isCalibrated) {
           indicator.className = 'status-indicator warning';
-          status.textContent = '未校准';
+          status.textContent = 'Not Calibrated';
         } else {
           indicator.className = 'status-indicator error';
-          status.textContent = '丢失';
+          status.textContent = 'Lost';
         }
       }
     }, 1000);
